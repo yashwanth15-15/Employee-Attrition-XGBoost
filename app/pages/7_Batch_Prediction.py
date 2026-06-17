@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import pickle
@@ -377,4 +377,4 @@ st.markdown("---")
 st.caption(
     "Employee Attrition Prediction System | XGBoost Machine Learning Model | B.Tech Major Project"
 )
-```
+
