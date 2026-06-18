@@ -8,6 +8,8 @@ st.title("Employee Attrition Prediction")
 with open("models/final_xgboost_model.pkl", "rb") as f:
     model = pickle.load(f)
 
+model.save_model("models/final_xgboost_model.json")
+
 # Load Encoders
 with open("models/final_encoders.pkl", "rb") as f:
     encoders = pickle.load(f)
