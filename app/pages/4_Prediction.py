@@ -1,104 +1,227 @@
 import streamlit as st
+import pandas as pd
+import pickle
 
 st.title("Employee Attrition Prediction")
 
-age = st.number_input("Age", 18, 65, 30)
+# Load Model
+with open("models/final_xgboost_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
-monthly_income = st.number_input(
-    "Monthly Income",
-    1000,
-    50000,
-    10000
-)
+# Load Encoders
+with open("models/final_encoders.pkl", "rb") as f:
+    encoders = pickle.load(f)
 
-years_at_company = st.number_input(
-    "Years At Company",
-    0,
-    40,
-    5
-)
+# Load Features
+with open("models/final_features.pkl", "rb") as f:
+    feature_names = pickle.load(f)
 
-overtime = st.selectbox(
-    "OverTime",
-    ["Yes", "No"]
-)
+st.subheader("Employee Information")
 
-if st.button("Predict"):
+col1, col2 = st.columns(2)
 
-    score = 0
+with col1:
 
-    if overtime == "Yes":
-        score += 40
+    age = st.number_input(
+        "Age", 18, 65, 30
+    )
 
-    if monthly_income < 5000:
-        score += 25
+    monthly_income = st.number_input(
+        "Monthly Income",
+        1000,
+        100000,
+        10000
+    )
 
-    if years_at_company < 3:
-        score += 20
+    total_working_years = st.number_input(
+        "Total Working Years",
+        0,
+        40,
+        5
+    )
 
-    if age < 30:
-        score += 15
+    years_at_company = st.number_input(
+        "Years At Company",
+        0,
+        40,
+        5
+    )
 
-    probability = min(score, 100)
+    years_in_current_role = st.number_input(
+        "Years In Current Role",
+        0,
+        20,
+        2
+    )
+
+    years_since_last_promotion = st.number_input(
+        "Years Since Last Promotion",
+        0,
+        15,
+        1
+    )
+
+with col2:
+
+    overtime = st.selectbox(
+        "OverTime",
+        ["Yes", "No"]
+    )
+
+    marital_status = st.selectbox(
+        "Marital Status",
+        ["Single", "Married", "Divorced"]
+    )
+
+    gender = st.selectbox(
+        "Gender",
+        ["Male", "Female"]
+    )
+
+    department = st.selectbox(
+        "Department",
+        [
+            "Human Resources",
+            "Research & Development",
+            "Sales"
+        ]
+    )
+
+    business_travel = st.selectbox(
+        "Business Travel",
+        [
+            "Non-Travel",
+            "Travel_Rarely",
+            "Travel_Frequently"
+        ]
+    )
+
+    work_life_balance = st.selectbox(
+        "Work Life Balance",
+        [1, 2, 3, 4]
+    )
+
+if st.button("Predict Attrition Risk"):
+
+    employee = {}
+
+    # Default values
+    for col in feature_names:
+        employee[col] = 0
+
+    # Numeric Features
+    employee["Age"] = age
+    employee["MonthlyIncome"] = monthly_income
+    employee["TotalWorkingYears"] = total_working_years
+    employee["YearsAtCompany"] = years_at_company
+    employee["YearsInCurrentRole"] = years_in_current_role
+    employee["YearsSinceLastPromotion"] = years_since_last_promotion
+
+    # Categorical Features
+    employee["OverTime"] = overtime
+    employee["MaritalStatus"] = marital_status
+    employee["Gender"] = gender
+    employee["Department"] = department
+    employee["BusinessTravel"] = business_travel
+    employee["WorkLifeBalance"] = work_life_balance
+
+    # Reasonable Defaults
+    employee["Education"] = 3
+    employee["EnvironmentSatisfaction"] = 3
+    employee["JobInvolvement"] = 3
+    employee["JobSatisfaction"] = 3
+    employee["PerformanceRating"] = 3
+    employee["RelationshipSatisfaction"] = 3
+    employee["StockOptionLevel"] = 1
+    employee["TrainingTimesLastYear"] = 2
+    employee["NumCompaniesWorked"] = 2
+    employee["DistanceFromHome"] = 5
+    employee["JobLevel"] = 2
+    employee["PercentSalaryHike"] = 15
+    employee["YearsWithCurrManager"] = years_in_current_role
+
+    df = pd.DataFrame([employee])
+
+    # Encode Categorical Columns
+    for col, encoder in encoders.items():
+
+        if col == "Attrition":
+            continue
+
+        if col in df.columns:
+
+            try:
+                df[col] = encoder.transform(
+                    df[col].astype(str)
+                )
+
+            except:
+                pass
+
+    X = df[feature_names]
+
+    probability = (
+        model.predict_proba(X)[0][1]
+        * 100
+    )
+
+    st.subheader("Prediction Result")
 
     st.metric(
         "Attrition Probability",
-        f"{probability:.1f}%"
+        f"{probability:.2f}%"
     )
 
+    st.progress(probability / 100)
+
     if probability >= 70:
-        st.error("HIGH ATTRITION RISK")
+
+        st.error(
+            "HIGH ATTRITION RISK"
+        )
 
     elif probability >= 40:
-        st.warning("MEDIUM ATTRITION RISK")
+
+        st.warning(
+            "MEDIUM ATTRITION RISK"
+        )
 
     else:
-        st.success("LOW ATTRITION RISK")
 
-    st.subheader("Major Attrition Factors")
-
-    st.write("""
-    1. OverTime
-
-    2. StockOptionLevel
-
-    3. TotalWorkingYears
-
-    4. JobInvolvement
-
-    5. MonthlyIncome
-    """)
+        st.success(
+            "LOW ATTRITION RISK"
+        )
 
     st.subheader("HR Recommendations")
 
     if probability >= 70:
 
         st.write("""
-        ✓ Immediate HR Discussion
+        • Conduct retention discussions
 
-        ✓ Career Development Plan
+        • Review compensation
 
-        ✓ Salary Review
+        • Improve work-life balance
 
-        ✓ Work-Life Balance Support
+        • Provide career growth opportunities
 
-        ✓ Retention Program
+        • Reduce excessive overtime
         """)
 
     elif probability >= 40:
 
         st.write("""
-        ✓ Employee Engagement Activities
+        • Increase employee engagement
 
-        ✓ Performance Feedback Sessions
+        • Review career growth opportunities
 
-        ✓ Career Growth Opportunities
+        • Monitor employee satisfaction
         """)
 
     else:
 
         st.write("""
-        ✓ Continue Regular Monitoring
+        • Continue regular employee support
 
-        ✓ Maintain Employee Satisfaction
+        • Maintain engagement programs
         """)
