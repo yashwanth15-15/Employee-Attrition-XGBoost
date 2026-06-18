@@ -172,7 +172,7 @@ if st.button("Predict Attrition Risk"):
     )
 
     # Progress Bar
-    st.progress(probability)
+    st.progress(min(max(float(probability), 0.0), 1.0))
 
     # Risk Level
     if probability >= 0.70:
