@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 df = pd.read_csv(
-    r"D:\Employee_Attrition_XGBoost_Project\data\WA_Fn-UseC_-HR-Employee-Attrition.csv"
+    r"data/WA_Fn-UseC_-HR-Employee-Attrition.csv"
 )
 
 # Attrition Count
 plt.figure(figsize=(6,4))
 sns.countplot(x='Attrition', data=df)
 plt.title("Employee Attrition Distribution")
-plt.savefig("D:/Employee_Attrition_XGBoost_Project/screenshots/attrition_distribution.png")
+plt.savefig("screenshots/attrition_distribution.png")
 plt.show()
 # 1. Attrition Distribution
 plt.figure(figsize=(6,4))

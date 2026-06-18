@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 
 # Load Dataset
 df = pd.read_csv(
-    r"D:\Employee_Attrition_XGBoost_Project\data\WA_Fn-UseC_-HR-Employee-Attrition.csv"
+    r"data/WA_Fn-UseC_-HR-Employee-Attrition.csv"
 )
 
 # Store encoders
@@ -54,21 +54,21 @@ print(
 
 # Save Model
 with open(
-    r"D:\Employee_Attrition_XGBoost_Project\models\xgboost_final.pkl",
+    r"models/xgboost_final.pkl",
     "wb"
 ) as f:
     pickle.dump(model, f)
 
 # Save Encoders
 with open(
-    r"D:\Employee_Attrition_XGBoost_Project\models\encoders.pkl",
+    r"models/encoders.pkl",
     "wb"
 ) as f:
     pickle.dump(encoders, f)
 
 # Save Feature Names
 with open(
-    r"D:\Employee_Attrition_XGBoost_Project\models\feature_names.pkl",
+    r"models/feature_names.pkl",
     "wb"
 ) as f:
     pickle.dump(feature_names, f)
