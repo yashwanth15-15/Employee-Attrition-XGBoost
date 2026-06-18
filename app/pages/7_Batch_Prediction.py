@@ -168,7 +168,7 @@ if uploaded_file is not None:
 
         st.plotly_chart(
             fig,
-            use_container_width=True
+            width="stretch"
         )
 
         # Department Analysis
@@ -210,7 +210,7 @@ if uploaded_file is not None:
 
             st.plotly_chart(
                 fig,
-                use_container_width=True
+                width="stretch"
             )
 
             highest_dept = dept_analysis.iloc[0]
