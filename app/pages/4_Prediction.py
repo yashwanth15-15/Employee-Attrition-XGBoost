@@ -160,41 +160,43 @@ if st.button("Predict Attrition Risk"):
 
     X = df[feature_names]
 
-    probability = (
-        model.predict_proba(X)[0][1]
-        * 100
-    )
+    # Predict Probability
+    probability = float(model.predict_proba(X)[0][1])
 
     st.subheader("Prediction Result")
 
+    # Show Percentage
     st.metric(
         "Attrition Probability",
-        f"{probability:.2f}%"
+        f"{probability * 100:.2f}%"
     )
 
-    st.progress(probability / 100)
+    # Progress Bar
+    st.progress(probability)
 
-    if probability >= 70:
+    # Risk Level
+    if probability >= 0.70:
 
         st.error(
-            "HIGH ATTRITION RISK"
+            "🔴 HIGH ATTRITION RISK"
         )
 
-    elif probability >= 40:
+    elif probability >= 0.40:
 
         st.warning(
-            "MEDIUM ATTRITION RISK"
+            "🟡 MEDIUM ATTRITION RISK"
         )
 
     else:
 
         st.success(
-            "LOW ATTRITION RISK"
+            "🟢 LOW ATTRITION RISK"
         )
 
+    # HR Recommendations
     st.subheader("HR Recommendations")
 
-    if probability >= 70:
+    if probability >= 0.70:
 
         st.write("""
         • Conduct retention discussions
@@ -208,7 +210,7 @@ if st.button("Predict Attrition Risk"):
         • Reduce excessive overtime
         """)
 
-    elif probability >= 40:
+    elif probability >= 0.40:
 
         st.write("""
         • Increase employee engagement
