@@ -1,15 +1,26 @@
 import streamlit as st
 
-st.title("Exploratory Data Analysis")
+st.title("📊 Exploratory Data Analysis")
 
 st.write("""
-EDA completed using:
-
-- Attrition Distribution
-- Overtime vs Attrition
-- Job Satisfaction vs Attrition
-- Department vs Attrition
-- Monthly Income Distribution
+Exploratory Data Analysis performed on the IBM HR Employee Attrition Dataset.
 """)
 
-st.info("Insert your saved screenshots here later.")
+st.subheader("Employee Attrition Distribution")
+st.image("screenshots/attrition_distribution.png")
+
+st.subheader("OverTime vs Attrition")
+st.image("screenshots/OVERTIME  VS ATTRITION.png")
+
+st.subheader("Job Satisfaction vs Attrition")
+st.image("screenshots/JOB SATISFACTION VD ATTRITION.png")
+
+st.subheader("Department vs Attrition")
+st.image("screenshots/DEPARTMRNT VS ATTRITION.png")
+
+st.subheader("Monthly Income Distribution")
+st.image("screenshots/MONTHLY INCOME DISTRIBUTION.png")
+
+st.success(
+    "EDA completed successfully. These insights helped identify important factors influencing employee attrition."
+)
