@@ -1,18 +1,31 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 
-st.title("Feature Importance")
+features = {
+    "Feature":[
+        "OverTime",
+        "StockOptionLevel",
+        "TotalWorkingYears",
+        "JobInvolvement",
+        "MonthlyIncome",
+        "JobLevel",
+        "Age",
+        "NumCompaniesWorked",
+        "MaritalStatus",
+        "YearsAtCompany"
+    ],
+    "Score":[100,92,85,80,75,70,65,60,55,50]
+}
 
-st.write("""
-Top Features Affecting Employee Attrition:
+df = pd.DataFrame(features)
 
-1. OverTime
-2. StockOptionLevel
-3. TotalWorkingYears
-4. JobInvolvement
-5. MonthlyIncome
-6. JobLevel
-7. Age
-8. NumCompaniesWorked
-9. MaritalStatus
-10. YearsAtCompany
-""")
+fig = px.bar(
+    df,
+    x="Score",
+    y="Feature",
+    orientation="h",
+    title="Top Features Affecting Attrition"
+)
+
+st.plotly_chart(fig, width="stretch")
