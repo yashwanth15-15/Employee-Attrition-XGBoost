@@ -70,7 +70,7 @@ tech_df = pd.DataFrame({
 
 st.dataframe(
     tech_df,
-    use_container_width=True
+    width="stretch"
 )
 
 st.markdown("---")
@@ -94,7 +94,7 @@ performance_df = pd.DataFrame({
 
 st.dataframe(
     performance_df,
-    use_container_width=True
+    width="stretch"
 )
 
 st.success(
@@ -122,7 +122,7 @@ top_features = pd.DataFrame({
 
 st.dataframe(
     top_features,
-    use_container_width=True
+    width="stretch"
 )
 
 st.markdown("---")
