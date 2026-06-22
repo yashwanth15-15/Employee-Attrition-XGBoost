@@ -9,6 +9,56 @@ st.markdown("""
 ### XGBoost Powered HR Analytics Dashboard
 """)
 
+st.subheader("📄 Upload Employee Dataset")
+
+st.info("""
+Upload a CSV file containing employee details.
+
+Use the sample CSV below if you are unsure about the format.
+""")
+with st.expander("📋 Required CSV Columns"):
+
+    st.code("""
+Age
+BusinessTravel
+Department
+DistanceFromHome
+Education
+EducationField
+EnvironmentSatisfaction
+Gender
+JobInvolvement
+JobLevel
+JobRole
+JobSatisfaction
+MaritalStatus
+MonthlyIncome
+NumCompaniesWorked
+OverTime
+PercentSalaryHike
+PerformanceRating
+RelationshipSatisfaction
+StockOptionLevel
+TotalWorkingYears
+TrainingTimesLastYear
+WorkLifeBalance
+YearsAtCompany
+YearsInCurrentRole
+YearsSinceLastPromotion
+YearsWithCurrManager
+""")
+with open(
+    "data/sample_employee_data.csv",
+    "rb"
+) as f:
+
+    st.download_button(
+        "📥 Download Sample CSV",
+        f,
+        "sample_employee_data.csv",
+        "text/csv"
+    )
+
 uploaded_file = st.file_uploader(
     "Upload Employee CSV",
     type=["csv"]
@@ -54,9 +104,14 @@ if uploaded_file is not None:
 
         if missing_cols:
             st.error(
-                f"Missing Columns: {missing_cols}"
-            )
-            st.stop()
+                f"""
+                ❌ Missing Required Columns:
+
+                {missing_cols}
+
+                Please download the sample CSV and follow the same format.
+                """
+                )
 
         # Encode Categorical Columns
         for col, encoder in encoders.items():
@@ -374,5 +429,5 @@ if uploaded_file is not None:
 st.markdown("---")
 
 st.caption(
-    "Employee Attrition Prediction System | XGBoost Machine Learning Model | B.Tech Major Project"
+    "Employee Attrition Prediction System | XGBoost Machine Learning Model "
 )

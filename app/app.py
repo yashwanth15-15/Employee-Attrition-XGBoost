@@ -6,16 +6,26 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-# 🚀 Employee Attrition Prediction Using XGBoost
+st.title("🚀 Employee Attrition Prediction System")
 
-### AI-Powered HR Analytics Dashboard
-""")
+st.markdown(
+    "### Predict Employee Turnover Using Machine Learning & HR Analytics"
+)
 
 st.markdown("---")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Model Accuracy", "85.03%")
+
+with col2:
+    st.metric("Dataset Size", "10,000")
+
+with col3:
+    st.metric("Features", "34")
 
 st.markdown("""
-## 📌 Major Project
+## 📌 
 
 **Early Prediction of Employee Attrition Using XGBoost Machine Learning Model**
 
@@ -23,11 +33,17 @@ This project helps Human Resource departments identify employees who are at risk
 
 ### 🎯 Objectives
 
-- Predict employee attrition risk
-- Analyze employee data
-- Identify key attrition factors
-- Support HR decision-making
-- Improve employee retention
+🎯 Project Objectives
+
+• Predict employee attrition before resignation
+
+• Identify employees at retention risk
+
+• Analyze key workforce trends
+
+• Support HR decision-making
+
+• Reduce employee turnover costs
 
 ### ⚙️ Technologies Used
 
@@ -81,35 +97,35 @@ This project helps Human Resource departments identify employees who are at risk
 ### 💡 Business Impact
 
 This system enables organizations to:
+            """)
+st.success("""
+✅ Reduce employee turnover
 
-- Reduce employee turnover
-- Improve workforce planning
-- Increase employee satisfaction
-- Support retention strategies
-- Make data-driven HR decisions
+✅ Improve workforce planning
+
+✅ Increase employee satisfaction
+
+✅ Support retention strategies
+
+✅ Enable data-driven HR decisions
+
 """)
 
 st.markdown("---")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, = st.columns(2)
 
 with col1:
-    st.metric(
-        "Model Accuracy",
-        "85.03%"
-    )
-
-with col2:
     st.metric(
         "Best Tuned Score",
         "88.03%"
     )
-
-with col3:
+with col2:
     st.metric(
-        "Project Type",
-        "Major Project"
+        "Prediction Model",
+        "XGBoost"
     )
+
 
 st.markdown("---")
 
@@ -120,3 +136,16 @@ st.info(
 st.caption(
     "Employee Attrition Prediction System | XGBoost Machine Learning Model | Developed by B. Yashwanth"
 )
+st.info("""
+📌 Dashboard Navigation
+
+1. Dataset Overview
+2. Exploratory Data Analysis
+3. Model Performance
+4. Employee Prediction
+5. Feature Importance
+6. Batch Prediction
+7. HR Insights
+8. About Project
+9. SHAP Explainability
+""")
