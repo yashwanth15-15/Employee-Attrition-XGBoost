@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 
 
 from ai_hr_assistant import generate_hr_analysis
+from pdf_generator import generate_pdf
 
 from datetime import datetime
 from reportlab.platypus import (
@@ -606,10 +607,52 @@ if predict:
                 employee_details,
                 probability
             )
+            risk_category = (
+                "High"
+                if probability >= 0.70
+                else "Medium"
+                if probability >= 0.40
+                else "Low"
+            )
 
-            st.markdown("---")
-            st.subheader("🤖 AI HR Assistant")
+            recommendations = []
 
+            if overtime == "Yes":
+                recommendations.append("Reduce employee overtime workload")
+
+            if work_life_balance <= 2:
+                recommendations.append("Improve work-life balance initiatives")
+
+            if job_satisfaction <= 2:
+                recommendations.append("Conduct employee satisfaction review")
+
+            if monthly_income < 5000:
+                recommendations.append("Review salary and compensation package")
+
+            if years_since_last_promotion > 5:
+                recommendations.append(
+                    "Provide career growth opportunities"
+                )
+
+            pdf = generate_pdf(
+                employee=employee_details,
+                probability=probability,
+                confidence=confidence,
+                health_score=health_score,
+                risk_category=risk_category,
+                replacement_cost=estimated_cost,
+                risk_factors=factors,
+                recommendations=recommendations,
+                analysis=analysis,
+            )
+
+            st.download_button(
+                "📄 Download PDF Report",
+                pdf,
+                file_name="Employee_Attrition_Report.pdf",
+                mime="application/pdf"
+            )
+            
             st.info(
                 "AI-generated HR insights are based on the employee profile and XGBoost prediction."
             )
