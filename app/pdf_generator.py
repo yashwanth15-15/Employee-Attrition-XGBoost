@@ -13,7 +13,17 @@ from reportlab.platypus import (
 )
 
 
-def generate_pdf(employee, prediction, analysis):
+def generate_pdf(
+    employee,
+    probability,
+    confidence,
+    health_score,
+    risk_category,
+    replacement_cost,
+    risk_factors,
+    recommendations,
+    analysis,
+):
     """
     Generate a professional Employee Attrition PDF Report.
     """
@@ -120,11 +130,38 @@ def generate_pdf(employee, prediction, analysis):
 
     story.append(
         Paragraph(
-            prediction,
+            f"<b>Attrition Probability:</b> {probability*100:.2f}%",
+            normal_style,
+        )
+    )
+    story.append(
+        Paragraph(
+            f"<b>Prediction Confidence:</b> {confidence*100:.2f}%",
             normal_style,
         )
     )
 
+    story.append(
+        Paragraph(
+            f"<b>Risk Category:</b> {risk_category}",
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            f"<b>Health Score:</b> {health_score}/100",
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            f"<b>Estimated Replacement Cost:</b> ₹{replacement_cost:,.0f}",
+            normal_style,
+        )
+    )
+        
     story.append(Spacer(1, 20))
 
     # =====================================================
@@ -138,14 +175,28 @@ def generate_pdf(employee, prediction, analysis):
         )
     )
 
-    analysis = analysis.replace("\n", "<br/>")
-
-    story.append(
-        Paragraph(
-            analysis,
-            normal_style,
-        )
+    analysis = (
+        analysis
+        .replace("###", "")
+        .replace("##", "")
+        .replace("#", "")
+        .replace("**", "")
+        .replace("*", "•")
+        .replace("```", "")
+        .strip()
     )
+
+
+    for line in analysis.split("\n"):
+
+        line = line.strip()
+
+        if line:
+            story.append(
+                Paragraph(line, normal_style)
+            )
+
+            story.append(Spacer(1,6))
 
     story.append(Spacer(1, 20))
 
