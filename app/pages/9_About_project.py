@@ -61,14 +61,17 @@ Features: 35
 Target Variable: Attrition
 """)
 
+from helpers.metrics_calculator import get_model_metrics
+acc, f1 = get_model_metrics()
+
 st.subheader("🤖 Machine Learning Model")
 
-st.write("""
+st.write(f"""
 Final Model: XGBoost Classifier
 
-Accuracy: 85.71%
+Test Accuracy: {acc*100:.2f}%
 
-Best Tuned F1 Score: 0.8803
+Test F1 Score: {f1:.4f}
 
 SMOTE Applied for Class Balancing
 """)

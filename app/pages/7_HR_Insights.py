@@ -7,10 +7,18 @@ st.title("👥 HR Insights & Recommendations")
 # ==================================================
 # LOAD DATASET
 # ==================================================
+@st.cache_data
+def load_data():
+    try:
+        return pd.read_csv("data/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+    except FileNotFoundError:
+        return None
 
-df = pd.read_csv(
-    "data/WA_Fn-UseC_-HR-Employee-Attrition.csv"
-)
+df = load_data()
+
+if df is None:
+    st.error("❌ Dataset not found! Please ensure 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv' exists.")
+    st.stop()
 
 # ==================================================
 # KPI CARDS

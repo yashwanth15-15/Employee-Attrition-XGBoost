@@ -1,10 +1,16 @@
 import streamlit as st
+from database import create_table
+
+create_table()
 
 st.set_page_config(
     page_title="Employee Attrition Prediction",
     page_icon="📊",
-    layout="wide"
+    initial_sidebar_state="expanded",
 )
+
+from helpers.metrics_calculator import get_model_metrics
+acc, f1 = get_model_metrics()
 
 st.title("🚀 Employee Attrition Prediction System")
 
@@ -16,7 +22,7 @@ st.markdown("---")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Model Accuracy", "85.03%")
+    st.metric("Test Accuracy", f"{acc*100:.2f}%")
 
 with col2:
     st.metric("Dataset Size", "10,000")
@@ -75,9 +81,9 @@ This project helps Human Resource departments identify employees who are at risk
 
 **Algorithm:** XGBoost Classifier
 
-**Model Accuracy:** 85.03%
+**Test Accuracy:** {acc*100:.2f}%
 
-**Best Tuned Score:** 88.03%
+**Test F1 Score:** {f1:.4f}
 
 **Target Variable:** Employee Attrition
 

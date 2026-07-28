@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from helpers.risk_calculator import calculate_risk
 
 # Configure Gemini API
 genai.configure(
@@ -7,7 +8,7 @@ genai.configure(
 )
 
 # Load Gemini Model
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 
 def generate_hr_analysis(employee, probability):
@@ -17,12 +18,7 @@ def generate_hr_analysis(employee, probability):
     """
 
     # Determine Risk Level
-    if probability < 0.20:
-        risk_level = "Low"
-    elif probability < 0.50:
-        risk_level = "Medium"
-    else:
-        risk_level = "High"
+    risk_level = calculate_risk(probability)
 
     prompt = f"""
 You are a Senior HR Analytics Consultant.
@@ -36,7 +32,7 @@ Predicted Attrition Probability:
 Overall Risk Level:
 {risk_level}
 
-Generate a professional HR report using Markdown.
+Generate a professional HR report.
 
 IMPORTANT RULES
 
@@ -52,57 +48,97 @@ If Risk Level is MEDIUM:
 If Risk Level is HIGH:
 - Recommend urgent HR interventions.
 
-Return ONLY the following sections.
+Return ONLY these sections:
 
 # 🔍 Overall Risk
 
-Give a short summary (2-3 lines).
-
 # 📌 Key Risk Factors
-
-List only 3-5 bullet points.
 
 # 🎯 HR Recommendations
 
-List only 4-6 bullet points.
-
 # 📈 Retention Strategy
-
-List only 3-5 bullet points.
 
 # 💼 Business Impact
 
-Explain in 2-3 sentences.
-
 # ⭐ Positive Employee Strengths
 
-Mention positive aspects of the employee profile.
-
 Rules:
-- Keep the report below 250 words.
+- Keep the report under 250 words.
 - Use professional HR language.
 - Use Markdown headings.
 - Do not repeat employee details.
-- Keep recommendations realistic.
 """
 
     try:
 
         response = model.generate_content(prompt)
 
-        if response.text:
+        if (
+            response
+            and hasattr(response, "text")
+            and response.text
+        ):
             return response.text
 
-        return "No response generated."
+        return """
+## ⚠️ AI Response
+
+The AI service did not return any analysis.
+
+Please try again.
+"""
 
     except Exception as e:
 
+        error = str(e)
+
+        # Quota exceeded
+        if "429" in error or "quota" in error.lower():
+
+            return """
+# ⚠️ AI Service Temporarily Unavailable
+
+The Gemini API free-tier request limit has been reached.
+
+Your employee prediction was generated successfully using the XGBoost model.
+
+Please try again later or use a Gemini API key with additional quota.
+"""
+
+        # Invalid API Key
+        elif "API_KEY" in error.upper():
+
+            return """
+# ❌ Invalid Gemini API Key
+
+The configured Gemini API key is invalid.
+
+Please verify your API key inside:
+
+.streamlit/secrets.toml
+"""
+
+        # Network Error
+        elif (
+            "connection" in error.lower()
+            or "network" in error.lower()
+        ):
+
+            return """
+# 🌐 Network Error
+
+Unable to connect to Gemini AI.
+
+Please check your internet connection.
+"""
+
+        # Generic Error
         return f"""
-## ❌ AI Error
+# ❌ AI Service Error
 
-Unable to generate HR analysis.
+An unexpected error occurred.
 
-Error Details:
+Error:
 
-{str(e)}
+{error}
 """

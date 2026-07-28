@@ -2,6 +2,26 @@ import streamlit as st
 import pandas as pd
 import pickle
 import plotly.express as px
+from helpers.risk_calculator import calculate_risk
+
+@st.cache_resource
+def load_model_artifacts():
+    try:
+        with open("models/final_xgboost_model.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open("models/final_encoders.pkl", "rb") as f:
+            encoders = pickle.load(f)
+        with open("models/final_features.pkl", "rb") as f:
+            feature_names = pickle.load(f)
+        return model, encoders, feature_names
+    except FileNotFoundError:
+        return None, None, None
+
+model, encoders, feature_names = load_model_artifacts()
+
+if model is None:
+    st.error("❌ Model artifacts not found. Please ensure models exist in the 'models/' directory.")
+    st.stop()
 
 st.markdown("""
 # 🎯 Employee Attrition Prediction System
@@ -75,27 +95,6 @@ if uploaded_file is not None:
         st.subheader("Uploaded Data")
         st.dataframe(df.head())
 
-        # Load Model
-        with open(
-            "models/final_xgboost_model.pkl",
-            "rb"
-        ) as f:
-            model = pickle.load(f)
-
-        # Load Encoders
-        with open(
-            "models/final_encoders.pkl",
-            "rb"
-        ) as f:
-            encoders = pickle.load(f)
-
-        # Load Feature Names
-        with open(
-            "models/final_features.pkl",
-            "rb"
-        ) as f:
-            feature_names = pickle.load(f)
-
         # Validate Columns
         missing_cols = [
             col for col in feature_names
@@ -134,15 +133,7 @@ if uploaded_file is not None:
 
         # Risk Level
         def risk_level(x):
-
-            if x >= 70:
-                return "High"
-
-            elif x >= 40:
-                return "Medium"
-
-            else:
-                return "Low"
+            return calculate_risk(x / 100)
 
         df["Risk_Level"] = df[
             "Attrition_Risk"
