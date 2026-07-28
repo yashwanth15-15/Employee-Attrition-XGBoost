@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import pickle
 import plotly.graph_objects as go
+import shap
 from database import add_prediction, prediction_exists_at_datetime
 
 
@@ -32,13 +33,15 @@ def load_model_artifacts():
             encoders = pickle.load(f)
         with open("models/final_features.pkl", "rb") as f:
             feature_names = pickle.load(f)
-        return model, encoders, feature_names
+            
+        explainer = shap.TreeExplainer(model)
+        return model, encoders, feature_names, explainer
     except FileNotFoundError:
-        return None, None, None
+        return None, None, None, None
 
-model, encoders, feature_names = load_model_artifacts()
+model, encoders, feature_names, explainer = load_model_artifacts()
 
-if model is None:
+if model is None or explainer is None:
     st.error("❌ Model artifacts not found. Please ensure models exist in the 'models/' directory.")
     st.stop()
 
@@ -642,15 +645,148 @@ if predict:
             st.session_state["report"] = report
             st.session_state["pdf"] = pdf
             st.session_state["analysis"] = combined_analysis
+            st.session_state["employee_details"] = employee_details
+            st.session_state["full_employee_row"] = employee.copy()
+            st.session_state["encoded_X"] = X.copy()
+            st.session_state["probability"] = probability
+            st.session_state["risk_category"] = risk_category
 
         except Exception as e:
             st.error(f"Error generating recommendation: {e}")
+# ======================================================
+# WHAT-IF ATTRITION SIMULATOR
+# ======================================================
+if st.session_state.get("prediction_done", False):
+    st.markdown("---")
+    st.header("🧪 What-If Attrition Simulator")
+    st.write("Simulate improvements in employee conditions to see the impact on predicted attrition risk.")
+    
+    emp = st.session_state.get("employee_details", {})
+    orig_prob = st.session_state.get("probability", 0.0)
+    orig_risk = st.session_state.get("risk_category", "")
+    
+    with st.expander("🛠️ Adjust Employee Conditions", expanded=True):
+        sim_col1, sim_col2, sim_col3 = st.columns(3)
+        
+        with sim_col1:
+            sim_income = st.number_input("Monthly Income", 1000, 100000, value=emp.get("Monthly Income", 5000), key="sim_income")
+            sim_overtime = st.selectbox("OverTime", ["Yes", "No"], index=["Yes", "No"].index(emp.get("OverTime", "No")), key="sim_ot")
+            sim_job_sat = st.selectbox("Job Satisfaction", [1,2,3,4], index=[1,2,3,4].index(emp.get("Job Satisfaction", 3)), key="sim_js")
+            
+        with sim_col2:
+            sim_env_sat = st.selectbox("Environment Satisfaction", [1,2,3,4], index=[1,2,3,4].index(emp.get("Environment Satisfaction", 3)), key="sim_es")
+            sim_wl_bal = st.selectbox("Work Life Balance", [1,2,3,4], index=[1,2,3,4].index(emp.get("Work Life Balance", 3)), key="sim_wlb")
+            sim_yslp = st.number_input("Years Since Last Promotion", 0, 15, value=emp.get("Years Since Last Promotion", 0), key="sim_yslp")
+            
+        with sim_col3:
+            sim_training = st.number_input("Training Times Last Year", 0, 10, value=emp.get("Training Times Last Year", 2), key="sim_tt")
+            sim_stock = st.selectbox("Stock Option Level", [0,1,2,3], index=[0,1,2,3].index(emp.get("Stock Option Level", 1)), key="sim_stock")
+            sim_travel = st.selectbox("Business Travel", ["Non-Travel", "Travel_Rarely", "Travel_Frequently"], index=["Non-Travel", "Travel_Rarely", "Travel_Frequently"].index(emp.get("Business Travel", "Non-Travel")), key="sim_bt")
+
+        run_sim = st.button("🚀 Run Simulation", width="stretch")
+
+    if run_sim:
+        with st.spinner("Running Simulation..."):
+            sim_emp = emp.copy()
+            sim_emp["Monthly Income"] = sim_income
+            sim_emp["OverTime"] = sim_overtime
+            sim_emp["Job Satisfaction"] = sim_job_sat
+            sim_emp["Environment Satisfaction"] = sim_env_sat
+            sim_emp["Work Life Balance"] = sim_wl_bal
+            sim_emp["Years Since Last Promotion"] = sim_yslp
+            sim_emp["Training Times Last Year"] = sim_training
+            sim_emp["Stock Option Level"] = sim_stock
+            sim_emp["Business Travel"] = sim_travel
+            
+            orig_row = st.session_state.get("full_employee_row", {}).copy()
+            orig_row["MonthlyIncome"] = sim_income
+            orig_row["OverTime"] = sim_overtime
+            orig_row["JobSatisfaction"] = sim_job_sat
+            orig_row["EnvironmentSatisfaction"] = sim_env_sat
+            orig_row["WorkLifeBalance"] = sim_wl_bal
+            orig_row["YearsSinceLastPromotion"] = sim_yslp
+            orig_row["TrainingTimesLastYear"] = sim_training
+            orig_row["StockOptionLevel"] = sim_stock
+            orig_row["BusinessTravel"] = sim_travel
+            
+            sim_df = pd.DataFrame([orig_row])
+            for col, encoder in encoders.items():
+                if col == "Attrition": continue
+                if col in sim_df.columns:
+                    try: sim_df[col] = encoder.transform(sim_df[col].astype(str))
+                    except: pass
+            
+            sim_X = sim_df[feature_names]
+            sim_prob = float(model.predict_proba(sim_X)[0][1])
+            sim_risk = calculate_risk(sim_prob)
+            
+            sim_shap_values = explainer.shap_values(sim_X)
+            orig_shap_values = explainer.shap_values(st.session_state.get("encoded_X"))
+            
+            import numpy as np
+            def get_top_shap(s_values, feats):
+                abs_s = np.abs(s_values[0])
+                top_idx = np.argsort(abs_s)[::-1][:3]
+                return [feats[i] for i in top_idx]
+                
+            orig_top = get_top_shap(orig_shap_values, feature_names)
+            sim_top = get_top_shap(sim_shap_values, feature_names)
+            
+            orig_rec = generate_hr_recommendation(emp, orig_prob, orig_risk)
+            sim_rec = generate_hr_recommendation(sim_emp, sim_prob, sim_risk)
+            
+            # --- DASHBOARD RENDERING ---
+            st.subheader("📊 Simulation Results")
+            
+            risk_diff = (orig_prob - sim_prob) * 100
+            
+            if risk_diff > 0:
+                impact_msg = f"📉 Predicted attrition risk **reduced by {risk_diff:.1f}%**"
+                st.success(impact_msg)
+            elif risk_diff < 0:
+                impact_msg = f"📈 Predicted attrition risk **increased by {abs(risk_diff):.1f}%**"
+                st.error(impact_msg)
+            else:
+                impact_msg = "➖ No significant change in predicted attrition risk."
+                st.info(impact_msg)
+                
+            comp_c1, comp_c2 = st.columns(2)
+            
+            with comp_c1:
+                st.metric("Original Risk", f"{orig_prob*100:.1f}%", f"{orig_risk} Risk")
+            with comp_c2:
+                st.metric("Simulated Risk", f"{sim_prob*100:.1f}%", f"{risk_diff:.1f}%", delta_color="inverse")
+                
+            st.markdown("### 🔍 Feature Comparison Table")
+            comp_data = []
+            for k in ["Monthly Income", "OverTime", "Job Satisfaction", "Environment Satisfaction", "Work Life Balance", "Years Since Last Promotion", "Training Times Last Year", "Stock Option Level", "Business Travel"]:
+                status = "Changed ✏️" if emp.get(k) != sim_emp.get(k) else "Unchanged"
+                comp_data.append({"Feature": k, "Original": emp.get(k), "Simulated": sim_emp.get(k), "Status": status})
+            
+            st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
+            
+            shap_c1, shap_c2 = st.columns(2)
+            with shap_c1:
+                st.markdown("**Original Top Contributors:**")
+                for f in orig_top: st.write(f"- {f}")
+            with shap_c2:
+                st.markdown("**Simulated Top Contributors:**")
+                for f in sim_top: st.write(f"- {f}")
+                
+            rec_c1, rec_c2 = st.columns(2)
+            with rec_c1:
+                with st.expander("Original HR Recommendations", expanded=True):
+                    st.markdown(orig_rec)
+            with rec_c2:
+                with st.expander("Simulated HR Recommendations", expanded=True):
+                    st.markdown(sim_rec)
+
+
 # ======================================================
 # DOWNLOAD CENTER
 # ======================================================
 
 if st.session_state.get("prediction_done", False):
-
     st.markdown("---")
     st.subheader("📥 Download Center")
 
