@@ -138,29 +138,49 @@ def generate_hr_recommendation(employee, probability, risk_category):
         actions.append("Review benefits package")
         strategies.append("Employee has no stock options. Introducing long-term incentives can improve loyalty.")
 
-    # Formatting the Output
-    priority = "High 🔴" if risk_category == "High" else "Medium 🟡" if risk_category == "Medium" else "Low 🟢"
+    # Structuring the Output for Enterprise UI
+    priority_level = "High" if risk_category == "High" else "Medium" if risk_category == "Medium" else "Low"
     
-    unique_actions = list(dict.fromkeys(actions))[:8]  # Keep top 8 unique actions
+    if priority_level == "High":
+        response_time = "Manager meeting within 7 days."
+        if probability > 0.85:
+            response_time = "Immediate HR intervention."
+    elif priority_level == "Medium":
+        response_time = "Review within 30 days."
+    else:
+        response_time = "Monitor every quarter."
     
-    factors_md = "\n".join([f"• {f}" for f in factors]) if factors else "• No critical risk factors identified."
-    actions_md = "\n".join([f"✔ {a}" for a in unique_actions])
-    strategies_md = "\n\n".join(strategies[:4]) # Keep top 4 strategies for conciseness
+    unique_actions = list(dict.fromkeys(actions))
+    
+    immediate_actions = []
+    medium_term_actions = []
+    long_term_strategy = []
+    
+    for action in unique_actions:
+        if "Immediate" in action or "Discussion" in action or "Review" in action or "Reduce" in action or "meeting" in action.lower():
+            immediate_actions.append(action)
+        elif "Bonus" in action or "Program" in action or "Flexible" in action or "Hybrid" in action or "Training" in action or "Team Building" in action:
+            medium_term_actions.append(action)
+        else:
+            long_term_strategy.append(action)
+            
+    # Fallback categorization if empty
+    if not immediate_actions and unique_actions:
+        immediate_actions = unique_actions[:2]
+        long_term_strategy = unique_actions[2:]
 
-    report = f"""
-### Employee Risk Summary
-
-**Attrition Risk:** {probability*100:.1f}%
-
-**Priority Level:** {priority}
-
-### 📌 Key Factors
-{factors_md}
-
-### 🎯 Recommended HR Actions
-{actions_md}
-
-### 📈 Retention Strategy
-{strategies_md}
-"""
-    return report
+    # Fallbacks for empty lists
+    if not medium_term_actions:
+        medium_term_actions = ["Schedule follow-up feedback session"]
+    if not long_term_strategy:
+        long_term_strategy = ["Incorporate into annual retention planning"]
+        
+    return {
+        "priority": priority_level,
+        "response_time": response_time,
+        "factors": factors,
+        "immediate_actions": immediate_actions,
+        "medium_term_actions": medium_term_actions,
+        "long_term_strategy": long_term_strategy,
+        "strategies_text": strategies[:4]
+    }

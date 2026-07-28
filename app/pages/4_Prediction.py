@@ -296,7 +296,7 @@ if predict:
         }
         try:
             add_prediction(record)
-            st.success("Prediction saved to history.")
+            st.success("✔ Prediction stored in Prediction History")
         except Exception as e:
             st.error(f"Error saving prediction: {e}")
 
@@ -430,136 +430,41 @@ if predict:
         width="stretch"
     )
 
-    st.subheader("🔍 Key Risk Factors")
-
-    factors = []
-
-    if overtime == "Yes":
-        factors.append("OverTime")
-
-    if monthly_income < 5000:
-        factors.append("Low Monthly Income")
-
-    if years_at_company < 2:
-        factors.append("Low Years At Company")
-
-    if total_working_years < 5:
-        factors.append("Limited Work Experience")
-    if job_satisfaction <= 2:
-        factors.append("Low Job Satisfaction")
-
-    if environment_satisfaction <= 2:
-        factors.append("Low Environment Satisfaction")
-
-    if work_life_balance <= 2:
-        factors.append("Poor Work-Life Balance")
-    if factors:
-
-        st.write("Factors contributing to attrition risk:")
-
-        for factor in factors:
-            st.info(f"⚠️ {factor}")
-
-    else:
-
-        st.success(
-            "No major risk factors detected."
-        )
-        # HR Recommendations
-    st.subheader("🎯 Personalized Recommendations")
-
-    if overtime == "Yes":
-        st.write("• Reduce employee overtime workload")
-
-    if work_life_balance <= 2:
-        st.write("• Improve work-life balance initiatives")
-
-    if job_satisfaction <= 2:
-        st.write("• Conduct employee satisfaction review")
-
-    if monthly_income < 5000:
-        st.write("• Review salary and compensation package")
-
-    if years_since_last_promotion > 5:
-        st.write("• Consider promotion or career growth opportunities")
-
-    st.subheader("💼 HR Impact Analysis")
-    if probability >= 0.70:
-
-        st.error("""
-        High attrition risk employee.
-
-        Potential replacement, hiring and training costs may increase.
-        """)
-
-    elif probability >= 0.40:
-
-        st.warning("""
-        Moderate attrition risk.
-
-        Employee engagement and monitoring recommended.
-        """)
-
-    else:
-
-        st.success("""
-        Low attrition risk.
-
-        No immediate retention action required.
-        """)
-    estimated_cost = monthly_income * 12
-
+    # ---------------------------------------------------------
+    # TOP RISK DRIVERS
+    # ---------------------------------------------------------
+    st.markdown("---")
+    st.subheader("🔥 Top Risk Drivers")
     
-
-    health_score = int((1 - probability) * 100)
-
-    st.progress(health_score / 100)
-
-    if health_score >= 70:
-        st.success(
-            f"Employee Health Score: {health_score}/100")
-
-    elif health_score >= 40:
-        st.warning(f"Employee Health Score: {health_score}/100")
-
-    else:
-        st.error(f"Employee Health Score: {health_score}/100")
+    # Calculate local SHAP values
+    try:
+        import numpy as np
+        local_shap_values = explainer.shap_values(X)
+        abs_shap = np.abs(local_shap_values[0])
+        top_indices = np.argsort(abs_shap)[::-1][:3]
         
-    report = pd.DataFrame({
-        "Prediction Date":[datetime.now().strftime("%d-%m-%Y")],
-        "Attrition Probability (%)":[round(probability*100,2)],
-        "Prediction Confidence (%)":[round(confidence*100,2)],
-        "Risk Category":[
-            calculate_risk(probability)
-        ],
-        "Department":[department],
-        "Age":[age],
-        "Monthly Income":[monthly_income]
-    })
-    st.subheader("🏆 Final Decision")
-
-    if probability >= 0.70:
-        st.error("Employee requires immediate retention action.")
-
-    elif probability >= 0.40:
-        st.warning("Employee should be monitored closely.")
-
-    else:
-        st.success("Employee appears stable and engaged.")
-   
-    with st.expander("ℹ️ Model Information"):
-
-         st.write("Algorithm: XGBoost")
-         st.write("Dataset Size: 10,000 Employees")
-         st.write(
-            f"Features Used: {len(feature_names)}"
-        )
-         st.write(f"Test Accuracy: {acc*100:.2f}%")
-         st.write("Project: Employee Attrition Prediction")
+        tr_c1, tr_c2, tr_c3 = st.columns(3)
+        cols = [tr_c1, tr_c2, tr_c3]
+        
+        for i, idx in enumerate(top_indices):
+            feat = feature_names[idx]
+            val = local_shap_values[0][idx]
+            direction = "+" if val > 0 else ""
+            with cols[i]:
+                with st.container(border=True):
+                    st.markdown(f"#### {i+1}️⃣ {feat}")
+                    st.metric("Contribution", f"{direction}{val*100:.1f}%")
+    except Exception as e:
+        st.warning("Could not compute SHAP risk drivers.")
+        
+    st.markdown("---")
+    
+    # ---------------------------------------------------------
+    # HR DECISION SUPPORT SYSTEM
+    # ---------------------------------------------------------
     st.subheader("🤖 HR Decision Support System")
 
     with st.spinner("Generating HR Recommendations..."):
-
         try:
             employee_details = {
                 "Age": age,
@@ -585,34 +490,54 @@ if predict:
             risk_category = calculate_risk(probability)
 
             # Generate Rule-Based Intelligence
-            rule_based_report = generate_hr_recommendation(
+            hr_report = generate_hr_recommendation(
                 employee_details,
                 probability,
                 risk_category
             )
-
-            # Display Rule-Based Report
+            
             st.info("💡 Rule-Based Intelligence generated instantly from HR protocols.")
             
-            with st.container(border=True):
-                st.markdown(rule_based_report)
+            rp_c1, rp_c2 = st.columns([1, 2])
+            
+            with rp_c1:
+                with st.container(border=True):
+                    st.markdown("### Retention Priority")
+                    priority = hr_report['priority']
+                    if priority == "High":
+                        if probability > 0.85:
+                            st.error("🔴 **Critical**")
+                        else:
+                            st.error("🟠 **High**")
+                    elif priority == "Medium":
+                        st.warning("🟡 **Medium**")
+                    else:
+                        st.success("🟢 **Low**")
+                        
+                    st.caption(f"**Response:**\n{hr_report['response_time']}")
+                
+            with rp_c2:
+                with st.container(border=True):
+                    st.markdown("### 🎯 HR Recommendations")
+                    t1, t2, t3 = st.tabs(["Immediate Actions", "Medium-Term Actions", "Long-Term Strategy"])
+                    
+                    with t1:
+                        for act in hr_report['immediate_actions']:
+                            st.write(f"✔ {act}")
+                    with t2:
+                        for act in hr_report['medium_term_actions']:
+                            st.write(f"✔ {act}")
+                    with t3:
+                        for act in hr_report['long_term_strategy']:
+                            st.write(f"✔ {act}")
+            
+            # Combine analysis for PDF
+            combined_analysis = f"### Retention Priority: {hr_report['priority']}\n\n"
+            combined_analysis += "**Immediate Actions:**\n" + "\n".join([f"- {a}" for a in hr_report['immediate_actions']]) + "\n\n"
+            combined_analysis += "**Medium-Term Actions:**\n" + "\n".join([f"- {a}" for a in hr_report['medium_term_actions']]) + "\n\n"
+            combined_analysis += "**Long-Term Strategy:**\n" + "\n".join([f"- {a}" for a in hr_report['long_term_strategy']])
 
-            recommendations = []
-            if overtime == "Yes":
-                recommendations.append("Reduce employee overtime workload")
-            if work_life_balance <= 2:
-                recommendations.append("Improve work-life balance initiatives")
-            if job_satisfaction <= 2:
-                recommendations.append("Conduct employee satisfaction review")
-            if monthly_income < 5000:
-                recommendations.append("Review salary and compensation package")
-            if years_since_last_promotion > 5:
-                recommendations.append("Provide career growth opportunities")
-
-            # Initialize combined analysis for PDF and download
-            combined_analysis = rule_based_report
-
-            # Optionally Enhance with Gemini AI
+            # AI Enhancement
             ai_analysis = generate_hr_analysis(employee_details, probability)
             
             if ai_analysis:
@@ -620,13 +545,13 @@ if predict:
                 st.info("Generative AI insights based on the employee profile.")
                 with st.container(border=True):
                     st.markdown(ai_analysis)
-                    
                 combined_analysis += f"\n\n## ✨ AI Enhanced Insights\n\n{ai_analysis}"
-                
-                from datetime import datetime
                 st.caption(f"AI Generated • {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}")
-            
-            st.warning("Recommendations are intended to support HR decision-making and should be reviewed before implementation.")
+            else:
+                st.subheader("✨ AI Enhanced Insights")
+                st.info("AI-generated insights are currently unavailable.\n\n"
+                        "Your recommendations have already been generated by the Intelligent HR Decision Support System.\n\n"
+                        "Rule-Based Intelligence Active ✅")
 
             # Generate PDF
             pdf = generate_pdf(
@@ -636,8 +561,8 @@ if predict:
                 health_score=health_score,
                 risk_category=risk_category,
                 replacement_cost=estimated_cost,
-                risk_factors=factors,
-                recommendations=recommendations,
+                risk_factors=hr_report.get('factors', []),
+                recommendations=hr_report['immediate_actions'] + hr_report['medium_term_actions'],
                 analysis=combined_analysis,
             )
 
@@ -669,18 +594,19 @@ if st.session_state.get("prediction_done", False):
         sim_col1, sim_col2, sim_col3 = st.columns(3)
         
         with sim_col1:
-            sim_income = st.number_input("Monthly Income", 1000, 100000, value=emp.get("Monthly Income", 5000), key="sim_income")
+            default_income = max(10000, min(100000, int(emp.get("Monthly Income", 50000))))
+            sim_income = st.slider("Monthly Income", min_value=10000, max_value=100000, step=1000, value=default_income, key="sim_income")
             sim_overtime = st.selectbox("OverTime", ["Yes", "No"], index=["Yes", "No"].index(emp.get("OverTime", "No")), key="sim_ot")
-            sim_job_sat = st.selectbox("Job Satisfaction", [1,2,3,4], index=[1,2,3,4].index(emp.get("Job Satisfaction", 3)), key="sim_js")
+            sim_job_sat = st.slider("Job Satisfaction ⭐", min_value=1, max_value=4, value=int(emp.get("Job Satisfaction", 3)), key="sim_js")
             
         with sim_col2:
-            sim_env_sat = st.selectbox("Environment Satisfaction", [1,2,3,4], index=[1,2,3,4].index(emp.get("Environment Satisfaction", 3)), key="sim_es")
-            sim_wl_bal = st.selectbox("Work Life Balance", [1,2,3,4], index=[1,2,3,4].index(emp.get("Work Life Balance", 3)), key="sim_wlb")
-            sim_yslp = st.number_input("Years Since Last Promotion", 0, 15, value=emp.get("Years Since Last Promotion", 0), key="sim_yslp")
+            sim_env_sat = st.slider("Environment Satisfaction ⭐", min_value=1, max_value=4, value=int(emp.get("Environment Satisfaction", 3)), key="sim_es")
+            sim_wl_bal = st.slider("Work Life Balance ⭐", min_value=1, max_value=4, value=int(emp.get("Work Life Balance", 3)), key="sim_wlb")
+            sim_yslp = st.slider("Years Since Last Promotion", min_value=0, max_value=15, value=int(emp.get("Years Since Last Promotion", 0)), key="sim_yslp")
             
         with sim_col3:
-            sim_training = st.number_input("Training Times Last Year", 0, 10, value=emp.get("Training Times Last Year", 2), key="sim_tt")
-            sim_stock = st.selectbox("Stock Option Level", [0,1,2,3], index=[0,1,2,3].index(emp.get("Stock Option Level", 1)), key="sim_stock")
+            sim_training = st.slider("Training Times Last Year", min_value=0, max_value=10, value=int(emp.get("Training Times Last Year", 2)), key="sim_tt")
+            sim_stock = st.slider("Stock Option Level", min_value=0, max_value=3, value=int(emp.get("Stock Option Level", 1)), key="sim_stock")
             sim_travel = st.selectbox("Business Travel", ["Non-Travel", "Travel_Rarely", "Travel_Frequently"], index=["Non-Travel", "Travel_Rarely", "Travel_Frequently"].index(emp.get("Business Travel", "Non-Travel")), key="sim_bt")
 
         run_sim = st.button("🚀 Run Simulation", width="stretch")
@@ -740,46 +666,77 @@ if st.session_state.get("prediction_done", False):
             
             risk_diff = (orig_prob - sim_prob) * 100
             
-            if risk_diff > 0:
-                impact_msg = f"📉 Predicted attrition risk **reduced by {risk_diff:.1f}%**"
-                st.success(impact_msg)
-            elif risk_diff < 0:
-                impact_msg = f"📈 Predicted attrition risk **increased by {abs(risk_diff):.1f}%**"
-                st.error(impact_msg)
-            else:
-                impact_msg = "➖ No significant change in predicted attrition risk."
-                st.info(impact_msg)
+            st.markdown("### 💼 Business Impact")
+            impacts = []
+            
+            if sim_overtime == "No" and emp.get("OverTime") == "Yes":
+                if risk_diff > 0: impacts.append(f"Reducing overtime lowered predicted attrition risk by {risk_diff:.1f}%.")
+            
+            if sim_income > int(emp.get("Monthly Income", 0)):
+                if risk_diff > 0: impacts.append(f"Increasing salary lowered predicted attrition risk by {risk_diff:.1f}%.")
                 
+            if sim_wl_bal > int(emp.get("Work Life Balance", 0)):
+                if risk_diff > 0: impacts.append(f"Improving work-life balance produced a reduction in risk.")
+                
+            if sim_job_sat > int(emp.get("Job Satisfaction", 0)):
+                if risk_diff > 0: impacts.append(f"Improving job satisfaction contributed to a better retention outlook.")
+                
+            if not impacts and risk_diff > 0:
+                impacts.append(f"The simulated changes successfully lowered predicted attrition risk by {risk_diff:.1f}%.")
+            elif not impacts and risk_diff < 0:
+                impacts.append(f"The simulated changes increased predicted attrition risk.")
+            elif not impacts:
+                impacts.append("The adjusted factors had no significant impact on attrition risk.")
+                
+            with st.container(border=True):
+                for imp in impacts:
+                    st.info(f"💡 {imp}")
+            
             comp_c1, comp_c2 = st.columns(2)
             
             with comp_c1:
                 st.metric("Original Risk", f"{orig_prob*100:.1f}%", f"{orig_risk} Risk")
             with comp_c2:
-                st.metric("Simulated Risk", f"{sim_prob*100:.1f}%", f"{risk_diff:.1f}%", delta_color="inverse")
+                if risk_diff > 0:
+                    st.metric("Simulated Risk", f"{sim_prob*100:.1f}%", f"{risk_diff:.1f}% Improved", delta_color="inverse")
+                elif risk_diff < 0:
+                    st.metric("Simulated Risk", f"{sim_prob*100:.1f}%", f"{risk_diff:.1f}% Risk Increased", delta_color="inverse")
+                else:
+                    st.metric("Simulated Risk", f"{sim_prob*100:.1f}%", "Unchanged", delta_color="off")
                 
             st.markdown("### 🔍 Feature Comparison Table")
             comp_data = []
             for k in ["Monthly Income", "OverTime", "Job Satisfaction", "Environment Satisfaction", "Work Life Balance", "Years Since Last Promotion", "Training Times Last Year", "Stock Option Level", "Business Travel"]:
-                status = "Changed ✏️" if emp.get(k) != sim_emp.get(k) else "Unchanged"
+                status = "Changed ✏️" if str(emp.get(k)) != str(sim_emp.get(k)) else "Unchanged"
                 comp_data.append({"Feature": k, "Original": emp.get(k), "Simulated": sim_emp.get(k), "Status": status})
             
             st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
             
             shap_c1, shap_c2 = st.columns(2)
             with shap_c1:
-                st.markdown("**Original Top Contributors:**")
-                for f in orig_top: st.write(f"- {f}")
+                with st.container(border=True):
+                    st.markdown("#### Original Top Contributors")
+                    for i, f in enumerate(orig_top): st.write(f"{i+1}️⃣ {f}")
             with shap_c2:
-                st.markdown("**Simulated Top Contributors:**")
-                for f in sim_top: st.write(f"- {f}")
+                with st.container(border=True):
+                    st.markdown("#### Simulated Top Contributors")
+                    for i, f in enumerate(sim_top): st.write(f"{i+1}️⃣ {f}")
                 
+            def render_rec_dict(rec_dict, title):
+                with st.expander(title, expanded=True):
+                    t1, t2, t3 = st.tabs(["Immediate", "Medium", "Long-Term"])
+                    with t1:
+                        for act in rec_dict['immediate_actions']: st.write(f"✔ {act}")
+                    with t2:
+                        for act in rec_dict['medium_term_actions']: st.write(f"✔ {act}")
+                    with t3:
+                        for act in rec_dict['long_term_strategy']: st.write(f"✔ {act}")
+                        
             rec_c1, rec_c2 = st.columns(2)
             with rec_c1:
-                with st.expander("Original HR Recommendations", expanded=True):
-                    st.markdown(orig_rec)
+                render_rec_dict(orig_rec, "Original HR Recommendations")
             with rec_c2:
-                with st.expander("Simulated HR Recommendations", expanded=True):
-                    st.markdown(sim_rec)
+                render_rec_dict(sim_rec, "Simulated HR Recommendations")
 
 
 # ======================================================

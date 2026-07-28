@@ -89,65 +89,7 @@ Rules:
         ):
             return response.text
 
-        return """
-## ⚠️ AI Response
+        return None
 
-The AI service did not return any analysis.
-
-Please try again.
-"""
-
-    except Exception as e:
-
-        error = str(e)
-
-        # Quota exceeded
-        if "429" in error or "quota" in error.lower():
-
-            return """
-# ⚠️ AI Service Temporarily Unavailable
-
-The Gemini API free-tier request limit has been reached.
-
-Your employee prediction was generated successfully using the XGBoost model.
-
-Please try again later or use a Gemini API key with additional quota.
-"""
-
-        # Invalid API Key
-        elif "API_KEY" in error.upper():
-
-            return """
-# ❌ Invalid Gemini API Key
-
-The configured Gemini API key is invalid.
-
-Please verify your API key inside:
-
-.streamlit/secrets.toml
-"""
-
-        # Network Error
-        elif (
-            "connection" in error.lower()
-            or "network" in error.lower()
-        ):
-
-            return """
-# 🌐 Network Error
-
-Unable to connect to Gemini AI.
-
-Please check your internet connection.
-"""
-
-        # Generic Error
-        return f"""
-# ❌ AI Service Error
-
-An unexpected error occurred.
-
-Error:
-
-{error}
-"""
+    except Exception:
+        return None
