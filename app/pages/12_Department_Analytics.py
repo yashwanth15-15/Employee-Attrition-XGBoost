@@ -13,8 +13,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_predictions
 
 # For PDF export
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 
 st.set_page_config(page_title="Department Analytics", layout="wide", page_icon="📊")
@@ -32,20 +33,34 @@ st.markdown("Enterprise HR analytics tracking real-time attrition risk across al
 def load_data():
     df = get_predictions()
     if not df.empty:
-        # Convert types
-        df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        df['prediction_probability'] = pd.to_numeric(df['prediction_probability'])
-        df['monthly_income'] = pd.to_numeric(df['monthly_income'])
-        df['replacement_cost'] = pd.to_numeric(df['replacement_cost'])
-        df['job_satisfaction'] = pd.to_numeric(df['job_satisfaction'])
-        df['environment_satisfaction'] = pd.to_numeric(df['environment_satisfaction'])
-        df['work_life_balance'] = pd.to_numeric(df['work_life_balance'])
+        # Define defaults for numeric optional columns
+        numeric_defaults = {
+            'prediction_probability': 0.0,
+            'monthly_income': 0.0,
+            'replacement_cost': 0.0,
+            'job_satisfaction': 3.0,
+            'environment_satisfaction': 3.0,
+            'work_life_balance': 3.0
+        }
+        for col, default in numeric_defaults.items():
+            if col not in df.columns:
+                df[col] = default
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default)
+            
+        if 'prediction_date' not in df.columns:
+            df['prediction_date'] = pd.Timestamp.now()
+        df['prediction_date'] = pd.to_datetime(df['prediction_date'], errors='coerce')
+        
+        # String/Categorical fallbacks
+        for col in ['department', 'gender', 'marital_status', 'overtime', 'business_travel', 'risk_category']:
+            if col not in df.columns:
+                df[col] = 'Unknown' if col != 'overtime' else 'No'
     return df
 
 raw_df = load_data()
 
 if raw_df.empty:
-    st.info("ℹ️ No employee predictions available yet. Please generate predictions to view analytics.")
+    st.info("ℹ️ No historical data available. Generate employee predictions to unlock analytics.")
     st.stop()
 
 # ==========================================
@@ -88,19 +103,24 @@ if df.empty:
     st.warning("⚠️ No data matches the selected filters.")
     st.stop()
 
+if len(df) < 20:
+    st.info("ℹ️ **Analytics are based on a limited sample.**\n\nDepartment benchmarking, trends, and predictive insights become significantly more reliable after approximately 20–30 employee predictions.")
+
 # ==========================================
 # SECTION 1: EXECUTIVE KPIs
 # ==========================================
 total_emp = len(df)
 high_risk = len(df[df['risk_category'] == 'High'])
+high_risk_pct = (high_risk / total_emp) * 100 if total_emp > 0 else 0
 med_risk = len(df[df['risk_category'] == 'Medium'])
 low_risk = len(df[df['risk_category'] == 'Low'])
 
 avg_risk = df['prediction_probability'].mean() * 100
+health_rating = 100 - avg_risk
 
 dep_risk_avg = df.groupby('department')['prediction_probability'].mean().reset_index()
-highest_risk_dep = dep_risk_avg.sort_values('prediction_probability', ascending=False).iloc[0]['department']
-lowest_risk_dep = dep_risk_avg.sort_values('prediction_probability', ascending=True).iloc[0]['department']
+highest_risk_dep = dep_risk_avg.sort_values('prediction_probability', ascending=False).iloc[0]['department'] if not dep_risk_avg.empty else "N/A"
+lowest_risk_dep = dep_risk_avg.sort_values('prediction_probability', ascending=True).iloc[0]['department'] if not dep_risk_avg.empty else "N/A"
 
 today = datetime.now().date()
 preds_today = len(df[df['prediction_date'].dt.date == today])
@@ -109,15 +129,21 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("👥 Total Employees", total_emp)
     st.metric("📈 Highest Risk Dept", highest_risk_dep)
+    st.metric("🔥 Attrition Heat Score", f"{avg_risk:.1f} / 100")
 with col2:
     st.metric("🔴 High Risk Employees", high_risk)
     st.metric("📉 Lowest Risk Dept", lowest_risk_dep)
+    st.metric("🚨 High Risk %", f"{high_risk_pct:.1f}%")
 with col3:
     st.metric("🟡 Medium Risk Employees", med_risk)
     st.metric("⚡ Average Attrition Risk", f"{avg_risk:.1f}%")
+    st.metric("🏥 Department Health Rating", f"{health_rating:.1f} / 100")
 with col4:
     st.metric("🟢 Low Risk Employees", low_risk)
     st.metric("📅 Predictions Today", preds_today)
+    
+    # Improved Risk Index
+    st.metric("📊 Dept Risk Index", f"{int(avg_risk)} / 100")
 
 st.markdown("---")
 
@@ -137,6 +163,7 @@ dept_summary = df.groupby('department').agg(
     Total_Replacement_Cost=('replacement_cost', 'sum')
 ).reset_index()
 
+dept_summary['Employee Distribution %'] = (dept_summary['Employees'] / total_emp * 100).round(1)
 dept_summary = dept_summary.sort_values('Average_Risk', ascending=False).round(2)
 
 st.dataframe(
@@ -148,7 +175,8 @@ st.dataframe(
         'Avg_Job_Sat': 'Job Sat (1-4)',
         'Avg_Env_Sat': 'Env Sat (1-4)',
         'Avg_WLB': 'Work-Life (1-4)',
-        'Total_Replacement_Cost': 'Replacement Cost (₹)'
+        'Total_Replacement_Cost': 'Replacement Cost (₹)',
+        'Employee Distribution %': 'Emp Dist (%)'
     }),
     use_container_width=True,
     hide_index=True
@@ -220,7 +248,8 @@ with tab2:
     with c_col1:
         # Salary vs Risk Scatter
         fig_scatter = px.scatter(df, x='monthly_income', y='prediction_probability', color='risk_category',
-                                 color_discrete_map=color_map, title='Monthly Income vs Attrition Probability')
+                                 color_discrete_map=color_map, title='Monthly Income vs Attrition Probability',
+                                 hover_data=['department'])
         st.plotly_chart(fig_scatter, use_container_width=True)
     with c_col2:
         # Overtime vs Risk Stacked Bar
@@ -244,15 +273,25 @@ with tab3:
         st.plotly_chart(fig_cost, use_container_width=True)
 
 # Top 10 High Risk
-st.markdown("#### 🚨 Top 10 High Risk Employees (by Database ID)")
-high_risk_df = df[df['risk_category'] == 'High'].sort_values('prediction_probability', ascending=False).head(10)
+st.markdown("#### 🚨 Top Risk Employees")
+high_risk_df = df[df['risk_category'] == 'High'].sort_values('prediction_probability', ascending=False)
 if not high_risk_df.empty:
-    fig_top10 = px.bar(high_risk_df, x='id', y='prediction_probability', text_auto='.2f',
-                       title='Top 10 High Risk Profiles', labels={'id': 'Database ID', 'prediction_probability': 'Probability'})
-    fig_top10.update_xaxes(type='category')
-    st.plotly_chart(fig_top10, use_container_width=True)
+    high_risk_table = high_risk_df[['id', 'department', 'prediction_probability', 'replacement_cost']].copy()
+    high_risk_table['Risk %'] = (high_risk_table['prediction_probability'] * 100).round(1)
+    high_risk_table['Health Score'] = (100 - high_risk_table['Risk %']).astype(int)
+    high_risk_table['Rank'] = range(1, len(high_risk_table) + 1)
+    high_risk_table['Priority Badge'] = '🚨 Immediate'
+    
+    # Reorder columns
+    high_risk_table = high_risk_table[['Rank', 'id', 'department', 'Risk %', 'Health Score', 'replacement_cost', 'Priority Badge']].rename(columns={
+        'id': 'Database ID',
+        'department': 'Department',
+        'replacement_cost': 'Replacement Cost (₹)'
+    })
+    
+    st.dataframe(high_risk_table.head(10), use_container_width=True, hide_index=True)
 else:
-    st.info("No high-risk employees found in the current filtered dataset.")
+    st.success("No high-risk employees found in the current filtered dataset. Excellent retention health!")
 
 st.markdown("---")
 
@@ -265,33 +304,51 @@ b_col1, b_col2 = st.columns([1, 2])
 
 with b_col1:
     # Calculate Business Impact
-    total_cost_exposure = high_risk_df['replacement_cost'].sum() if not high_risk_df.empty else 0
-    highest_cost_dept = dept_summary.sort_values('Total_Replacement_Cost', ascending=False).iloc[0]
+    high_risk_exposure = high_risk_df['replacement_cost'].sum() if not high_risk_df.empty else 0
+    total_workforce_value = df['replacement_cost'].sum()
+    highest_cost_dept = dept_summary.sort_values('Total_Replacement_Cost', ascending=False).iloc[0] if not dept_summary.empty else None
     
     with st.container(border=True):
         st.markdown("### Financial Exposure")
-        st.metric("Estimated Total Replacement Cost (High Risk)", f"₹{total_cost_exposure:,.2f}")
-        st.metric("Highest Cost Department", highest_cost_dept['department'])
-        st.metric(f"Exposure in {highest_cost_dept['department']}", f"₹{highest_cost_dept['Total_Replacement_Cost']:,.2f}")
+        st.metric("High Risk Financial Exposure", f"₹{high_risk_exposure:,.2f}")
+        st.metric("Total Workforce Replacement Value", f"₹{total_workforce_value:,.2f}")
+        
+        if high_risk_exposure == 0:
+            st.success("Current Financial Status\n\n🟢 Stable Workforce")
+        else:
+            if highest_cost_dept is not None:
+                st.metric("Highest Cost Department", highest_cost_dept['department'])
+                st.metric(f"Exposure in {highest_cost_dept['department']}", f"₹{highest_cost_dept['Total_Replacement_Cost']:,.2f}")
 
 with b_col2:
     with st.container(border=True):
         st.markdown("### 🧠 Auto-Generated Insights")
         
         insights = []
-        insights.append(f"**{highest_risk_dep}** has the highest average attrition risk at **{dept_summary.iloc[0]['Average_Risk']:.1f}%**.")
-        insights.append(f"**{lowest_risk_dep}** has the best retention outlook.")
         
+        # Single Department Check
+        if len(departments) == 1:
+            insights.append("Current analytics include one department only. Department-level benchmarking will become available as additional departments are predicted.")
+        else:
+            if highest_risk_dep != "N/A":
+                insights.append(f"**{highest_risk_dep}** currently holds the highest average attrition risk ({dept_summary.iloc[0]['Average_Risk']:.1f}%).")
+            if lowest_risk_dep != "N/A":
+                insights.append(f"**{lowest_risk_dep}** maintains the strongest retention outlook across the organization.")
+            
         # Check overtime correlation
         ot_high = len(df[(df['overtime'] == 'Yes') & (df['risk_category'] == 'High')])
         non_ot_high = len(df[(df['overtime'] == 'No') & (df['risk_category'] == 'High')])
         if ot_high > non_ot_high:
-            insights.append("Overtime strongly correlates with high attrition in the current population.")
+            insights.append("Elevated overtime levels strongly correlate with high attrition profiles in the current population.")
             
-        # Check WLB
-        lowest_wlb = dept_summary.sort_values('Avg_WLB').iloc[0]
-        if lowest_wlb['Avg_WLB'] < 2.5:
-            insights.append(f"**{lowest_wlb['department']}** shows declining work-life balance (Avg: {lowest_wlb['Avg_WLB']:.1f}).")
+        # Check WLB using static terminology
+        if not dept_summary.empty and len(departments) > 1:
+            lowest_wlb = dept_summary.sort_values('Avg_WLB').iloc[0]
+            if lowest_wlb['Avg_WLB'] < 2.5:
+                insights.append(f"Average Work-Life Balance in **{lowest_wlb['department']}**: {lowest_wlb['Avg_WLB']:.1f} (Below Organizational Target)")
+            
+        if len(insights) == 0 or total_emp == 0:
+            insights.append("Current workforce metrics are within expected organizational thresholds.")
             
         for insight in insights:
             st.info(f"💡 {insight}")
@@ -299,25 +356,43 @@ with b_col2:
 st.markdown("### 📋 Executive Recommendations")
 e_col1, e_col2, e_col3 = st.columns(3)
 
-with e_col1:
-    with st.container(border=True):
-        st.markdown("🔴 **Immediate**")
-        st.write(f"✔ Investigate high risk drivers in {highest_risk_dep}")
-        if total_cost_exposure > 0:
-            st.write("✔ Review retention strategies for critical profiles")
+if high_risk == 0:
+    with e_col1:
+        with st.container(border=True):
+            st.markdown("🔴 **Immediate**")
+            st.write("✔ No urgent intervention required.")
+    with e_col2:
+        with st.container(border=True):
+            st.markdown("🟡 **Manager**")
+            st.write("✔ Continue periodic employee engagement.")
+    with e_col3:
+        with st.container(border=True):
+            st.markdown("🟢 **Long-Term**")
+            st.write("✔ Maintain current retention strategy.")
+else:
+    with e_col1:
+        with st.container(border=True):
+            st.markdown("🔴 **Immediate**")
+            if highest_risk_dep != "N/A":
+                st.write(f"✔ Investigate high risk drivers in {highest_risk_dep}")
+            if high_risk_exposure > 0:
+                st.write("✔ Review retention strategies for critical profiles")
+            else:
+                st.write("✔ Review individual critical profiles.")
 
-with e_col2:
-    with st.container(border=True):
-        st.markdown("🟡 **Medium**")
-        if ot_high > non_ot_high:
-            st.write("✔ Reduce overtime workload across departments")
-        st.write("✔ Review compensation strategy")
+    with e_col2:
+        with st.container(border=True):
+            st.markdown("🟡 **Manager**")
+            if ot_high > non_ot_high:
+                st.write("✔ Reduce overtime workload across departments")
+            st.write("✔ Review compensation strategy and workload distribution")
 
-with e_col3:
-    with st.container(border=True):
-        st.markdown("🟢 **Long-Term**")
-        st.write("✔ Improve promotion and career growth opportunities")
-        st.write(f"✔ Replicate retention success of {lowest_risk_dep} across org")
+    with e_col3:
+        with st.container(border=True):
+            st.markdown("🟢 **Long-Term**")
+            st.write("✔ Improve promotion and career growth opportunities")
+            if lowest_risk_dep != "N/A":
+                st.write(f"✔ Replicate retention success of {lowest_risk_dep} across org")
 
 st.markdown("---")
 
@@ -336,36 +411,65 @@ with ex_col2:
     st.download_button("📜 Download JSON", data=json_data, file_name="department_analytics.json", mime="application/json", width="stretch")
 
 # PDF Generation
-def generate_dept_pdf(dept_summary_df):
+def generate_dept_pdf(dept_summary_df, insights_text):
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer)
+    
+    # Custom pagination function
+    def add_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 9)
+        canvas.setFillColor(colors.gray)
+        canvas.drawString(inch, 0.75 * inch, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        canvas.drawRightString(7.5 * inch, 0.75 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    from reportlab.lib.units import inch
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
+    
     elements = []
     styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    h2_style = styles['Heading2']
+    normal_style = styles['Normal']
     
-    elements.append(Paragraph("Department Analytics Summary", styles['Title']))
+    # Cover Section
+    elements.append(Paragraph("Enterprise HR Department Analytics Summary", title_style))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Executive insights detailing attrition risk and financial exposure across the organization.", normal_style))
+    elements.append(Spacer(1, 24))
+    
+    # Insights
+    elements.append(Paragraph("Executive Insights", h2_style))
+    for t in insights_text:
+        elements.append(Paragraph(f"• {t}", normal_style))
+        elements.append(Spacer(1, 6))
+    
+    elements.append(Spacer(1, 24))
+    
+    # Table
+    elements.append(Paragraph("Department Overview", h2_style))
     elements.append(Spacer(1, 12))
     
     data = [dept_summary_df.columns.tolist()] + dept_summary_df.values.tolist()
-    
-    t = Table(data)
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+    t = Table(data, style=[
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1f2937')),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('BOTTOMPADDING', (0,0), (-1,0), 12),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-        ('GRID', (0,0), (-1,-1), 1, colors.black)
-    ]))
+        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f9fafb')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db'))
+    ])
     elements.append(t)
-    doc.build(elements)
+    
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     return buffer.read()
 
 try:
-    pdf_bytes = generate_dept_pdf(dept_summary.round(2))
+    pdf_bytes = generate_dept_pdf(dept_summary.round(2), insights)
     with ex_col3:
-        st.download_button("📑 Download Summary PDF", data=pdf_bytes, file_name="Department_Summary.pdf", mime="application/pdf", width="stretch")
+        st.download_button("📑 Download Executive PDF", data=pdf_bytes, file_name="Department_Analytics_Report.pdf", mime="application/pdf", width="stretch")
 except Exception as e:
     with ex_col3:
-        st.error("PDF generation failed.")
+        st.error(f"PDF generation failed: {e}")

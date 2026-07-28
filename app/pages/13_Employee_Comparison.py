@@ -18,7 +18,9 @@ from helpers.hr_recommendation_engine import generate_hr_recommendation
 from helpers.risk_calculator import calculate_risk
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
 from reportlab.lib import colors
 
 st.set_page_config(page_title="Employee Comparison", layout="wide", page_icon="👥")
@@ -109,24 +111,24 @@ def predict_employee(employee_dict):
     
     # Standardize dictionary for recommendation engine
     standard_dict = {
-        "Age": int(employee_dict.get("Age", 30)),
-        "Gender": employee_dict.get("Gender", "Male"),
-        "Department": employee_dict.get("Department", "Sales"),
-        "Monthly Income": float(employee_dict.get("Monthly Income", 5000) or employee_dict.get("MonthlyIncome", 5000)),
-        "Marital Status": employee_dict.get("Marital Status", "Single"),
-        "OverTime": employee_dict.get("OverTime", "No"),
-        "Years At Company": int(employee_dict.get("Years At Company", 0)),
-        "Total Working Years": int(employee_dict.get("Total Working Years", 0)),
-        "Job Satisfaction": int(employee_dict.get("Job Satisfaction", 3)),
-        "Environment Satisfaction": int(employee_dict.get("Environment Satisfaction", 3)),
-        "Work Life Balance": int(employee_dict.get("Work Life Balance", 3)),
-        "Years Since Last Promotion": int(employee_dict.get("Years Since Last Promotion", 0)),
-        "Training Times Last Year": int(employee_dict.get("Training Times Last Year", 2)),
-        "Business Travel": employee_dict.get("Business Travel", "Non-Travel"),
-        "Distance From Home": int(employee_dict.get("Distance From Home", 5)),
+        "Age": int(pd.to_numeric(employee_dict.get("Age", 30), errors='coerce') or 30),
+        "Gender": str(employee_dict.get("Gender", "Male")),
+        "Department": str(employee_dict.get("Department", "Sales")),
+        "Monthly Income": float(pd.to_numeric(employee_dict.get("Monthly Income", 5000), errors='coerce') or 5000),
+        "Marital Status": str(employee_dict.get("Marital Status", "Single")),
+        "OverTime": str(employee_dict.get("OverTime", "No")),
+        "Years At Company": int(pd.to_numeric(employee_dict.get("Years At Company", 0), errors='coerce') or 0),
+        "Total Working Years": int(pd.to_numeric(employee_dict.get("Total Working Years", 0), errors='coerce') or 0),
+        "Job Satisfaction": int(pd.to_numeric(employee_dict.get("Job Satisfaction", 3), errors='coerce') or 3),
+        "Environment Satisfaction": int(pd.to_numeric(employee_dict.get("Environment Satisfaction", 3), errors='coerce') or 3),
+        "Work Life Balance": int(pd.to_numeric(employee_dict.get("Work Life Balance", 3), errors='coerce') or 3),
+        "Years Since Last Promotion": int(pd.to_numeric(employee_dict.get("Years Since Last Promotion", 0), errors='coerce') or 0),
+        "Training Times Last Year": int(pd.to_numeric(employee_dict.get("Training Times Last Year", 2), errors='coerce') or 2),
+        "Business Travel": str(employee_dict.get("Business Travel", "Non-Travel")),
+        "Distance From Home": int(pd.to_numeric(employee_dict.get("Distance From Home", 5), errors='coerce') or 5),
         "Performance Rating": 3,
-        "Stock Option Level": int(employee_dict.get("Stock Option Level", 0)),
-        "Years In Current Role": int(employee_dict.get("Years In Current Role", 0)),
+        "Stock Option Level": int(pd.to_numeric(employee_dict.get("Stock Option Level", 0), errors='coerce') or 0),
+        "Years In Current Role": int(pd.to_numeric(employee_dict.get("Years In Current Role", 0), errors='coerce') or 0),
     }
     
     rec = generate_hr_recommendation(standard_dict, prob, risk)
@@ -151,9 +153,14 @@ ready_to_compare = False
 with tab_db:
     db_df = get_predictions()
     if db_df.empty:
-        st.info("No predictions found in the database.")
+        st.info("No predictions found in the database. Generate predictions first.")
     else:
-        db_df['label'] = "ID: " + db_df['id'].astype(str) + " - " + db_df['department'] + " (" + db_df['prediction_date'].str.split(' ').str[0] + ")"
+        # Fallback for missing string columns
+        for col in ['department', 'prediction_date']:
+            if col not in db_df.columns:
+                db_df[col] = "Unknown"
+        
+        db_df['label'] = "ID: " + db_df['id'].astype(str) + " - " + db_df['department'] + " (" + db_df['prediction_date'].astype(str).str.split(' ').str[0] + ")"
         
         col1, col2 = st.columns(2)
         with col1:
@@ -165,7 +172,6 @@ with tab_db:
             row_A = db_df[db_df['label'] == sel_A].iloc[0].to_dict()
             row_B = db_df[db_df['label'] == sel_B].iloc[0].to_dict()
             
-            # Map DB columns back to standard names
             def map_db_to_standard(row):
                 return {
                     "Age": row.get("age", 30),
@@ -175,7 +181,7 @@ with tab_db:
                     "Marital Status": row.get("marital_status", "Single"),
                     "OverTime": row.get("overtime", "No"),
                     "Years At Company": row.get("years_at_company", 0),
-                    "Total Working Years": row.get("years_at_company", 0) + 2, # Approximation if missing
+                    "Total Working Years": row.get("years_at_company", 0) + 2,
                     "Job Satisfaction": row.get("job_satisfaction", 3),
                     "Environment Satisfaction": row.get("environment_satisfaction", 3),
                     "Work Life Balance": row.get("work_life_balance", 3),
@@ -194,7 +200,6 @@ with tab_db:
 with tab_csv:
     st.write("Upload a CSV file containing exactly two rows representing Employee A and Employee B.")
     
-    # Template download
     template_df = pd.DataFrame([{
         "Age": 30, "Gender": "Male", "Department": "Sales", "Monthly Income": 5000,
         "Marital Status": "Single", "OverTime": "No", "Years At Company": 5, "Total Working Years": 5,
@@ -286,19 +291,32 @@ if ready_to_compare and emp_A_data and emp_B_data:
     st.subheader("📝 Executive Summary")
     
     summary = []
+    # Smart insight generation based on drivers
+    def analyze_drivers(std_dict, prob):
+        drivers = []
+        if std_dict.get('OverTime') == 'Yes': drivers.append("elevated overtime exposure")
+        if std_dict.get('Job Satisfaction', 3) <= 2: drivers.append("low job satisfaction")
+        if std_dict.get('Work Life Balance', 3) <= 2: drivers.append("poor work-life balance")
+        if std_dict.get('Monthly Income', 5000) < 3000: drivers.append("below-average compensation")
+        return drivers
+
+    drivers_A = analyze_drivers(std_A, prob_A)
+    drivers_B = analyze_drivers(std_B, prob_B)
+
     if prob_A > prob_B + 0.15:
-        summary.append(f"Employee A has a significantly higher attrition risk ({prob_A*100:.1f}%) compared to Employee B ({prob_B*100:.1f}%).")
-        if std_A['OverTime'] == 'Yes' and std_B['OverTime'] == 'No':
-            summary.append("Employee A's frequent overtime is a major distinguishing risk factor.")
+        reason = f" because of {', '.join(drivers_A)}" if drivers_A else ""
+        summary.append(f"Employee B demonstrates stronger retention health. Employee A requires closer monitoring{reason}.")
     elif prob_B > prob_A + 0.15:
-        summary.append(f"Employee B has a significantly higher attrition risk ({prob_B*100:.1f}%) compared to Employee A ({prob_A*100:.1f}%).")
+        reason = f" because of {', '.join(drivers_B)}" if drivers_B else ""
+        summary.append(f"Employee A demonstrates stronger retention health. Employee B requires closer monitoring{reason}.")
     else:
-        summary.append(f"Both employees exhibit similar retention profiles (A: {prob_A*100:.1f}%, B: {prob_B*100:.1f}%).")
+        summary.append("Both employees exhibit similar baseline retention profiles.")
         
-    if cost_A > cost_B and prob_A > 0.4:
-        summary.append(f"Immediate intervention is recommended for Employee A due to the high replacement exposure of ₹{cost_A:,.2f}.")
-    elif cost_B > cost_A and prob_B > 0.4:
-        summary.append(f"Immediate intervention is recommended for Employee B due to the high replacement exposure of ₹{cost_B:,.2f}.")
+    common_immediate = list(set(rec_A['immediate_actions']) & set(rec_B['immediate_actions']))
+    if len(common_immediate) > 1:
+        summary.append("Both employees require similar retention strategies across immediate actions.")
+    else:
+        summary.append("Distinct risk profiles require personalized HR intervention strategies for each employee.")
         
     st.info(" ".join(summary))
     st.markdown("---")
@@ -308,10 +326,47 @@ if ready_to_compare and emp_A_data and emp_B_data:
     # ==========================================
     st.subheader("🔍 Feature Comparison")
     
-    keys = ["Age", "Department", "Monthly Income", "OverTime", "Job Satisfaction", "Work Life Balance", "Years At Company"]
+    keys = [
+        ("Age", "higher_better"), 
+        ("Monthly Income", "higher_better"), 
+        ("Job Satisfaction", "higher_better"), 
+        ("Work Life Balance", "higher_better"), 
+        ("Years At Company", "neutral"),
+        ("OverTime", "lower_better")
+    ]
+    
     comp_rows = []
-    for k in keys:
-        comp_rows.append({"Metric": k, "Employee A": std_A.get(k), "Employee B": std_B.get(k)})
+    for k, logic in keys:
+        val_A = std_A.get(k, 0)
+        val_B = std_B.get(k, 0)
+        
+        # Determine arrows
+        arrow_A = ""
+        arrow_B = ""
+        
+        if val_A == val_B:
+            arrow_A = "≈ Similar"
+            arrow_B = "≈ Similar"
+        elif type(val_A) in [int, float] and type(val_B) in [int, float]:
+            if val_A > val_B:
+                arrow_A = "▲ Better" if logic == "higher_better" else "▼ Needs Attention" if logic == "lower_better" else ""
+                arrow_B = "▼ Needs Attention" if logic == "higher_better" else "▲ Better" if logic == "lower_better" else ""
+            else:
+                arrow_A = "▼ Needs Attention" if logic == "higher_better" else "▲ Better" if logic == "lower_better" else ""
+                arrow_B = "▲ Better" if logic == "higher_better" else "▼ Needs Attention" if logic == "lower_better" else ""
+        elif k == "OverTime":
+            if val_A == "No" and val_B == "Yes":
+                arrow_A = "▲ Better"
+                arrow_B = "▼ Needs Attention"
+            elif val_A == "Yes" and val_B == "No":
+                arrow_A = "▼ Needs Attention"
+                arrow_B = "▲ Better"
+                
+        comp_rows.append({
+            "Metric": k, 
+            "Employee A": f"{val_A} {arrow_A}", 
+            "Employee B": f"{val_B} {arrow_B}"
+        })
         
     st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
     
@@ -320,50 +375,63 @@ if ready_to_compare and emp_A_data and emp_B_data:
     # ==========================================
     st.subheader("🔥 Risk Driver Comparison (SHAP)")
     
-    def get_top_shap_df(shap_v, feats):
-        abs_s = np.abs(shap_v[0])
-        top_idx = np.argsort(abs_s)[::-1][:5]
+    def get_meaningful_shap_df(shap_v, feats):
+        # Only show SHAP values with > 1% contribution magnitude
+        contributions = shap_v[0] * 100
+        abs_s = np.abs(contributions)
+        valid_idx = [i for i in range(len(abs_s)) if abs_s[i] > 1.0]
+        
+        # Get top 5 meaningful
+        top_idx = sorted(valid_idx, key=lambda i: abs_s[i], reverse=True)[:5]
+        
+        if not top_idx:
+            return pd.DataFrame({"Feature": ["No significant drivers"], "Contribution": [0]})
+            
         return pd.DataFrame({
             "Feature": [feats[i] for i in top_idx],
-            "Contribution": [shap_v[0][i] * 100 for i in top_idx]
+            "Contribution": [contributions[i] for i in top_idx]
         })
         
-    top_A = get_top_shap_df(shap_A, feature_names)
-    top_B = get_top_shap_df(shap_B, feature_names)
+    top_A = get_meaningful_shap_df(shap_A, feature_names)
+    top_B = get_meaningful_shap_df(shap_B, feature_names)
     
     sh1, sh2 = st.columns(2)
     with sh1:
-        fig_A = px.bar(top_A, x='Contribution', y='Feature', orientation='h', title='Employee A Top Risk Drivers')
+        fig_A = px.bar(top_A, x='Contribution', y='Feature', orientation='h', title='Employee A Top Risk Drivers (>1%)')
         fig_A.update_yaxes(autorange="reversed")
+        fig_A.update_layout(hovermode='y')
         st.plotly_chart(fig_A, use_container_width=True)
     with sh2:
-        fig_B = px.bar(top_B, x='Contribution', y='Feature', orientation='h', title='Employee B Top Risk Drivers')
+        fig_B = px.bar(top_B, x='Contribution', y='Feature', orientation='h', title='Employee B Top Risk Drivers (>1%)')
         fig_B.update_yaxes(autorange="reversed")
+        fig_B.update_layout(hovermode='y')
         st.plotly_chart(fig_B, use_container_width=True)
 
     # ==========================================
     # SECTION 6: RECOMMENDATION COMPARISON
     # ==========================================
     st.subheader("🎯 Recommendation Matrix")
-    
-    common_immediate = list(set(rec_A['immediate_actions']) & set(rec_B['immediate_actions']))
-    if common_immediate:
-        st.success("**Common Actions Required:** " + ", ".join(common_immediate))
         
     r1, r2 = st.columns(2)
     with r1:
         with st.container(border=True):
             st.markdown("### Employee A")
-            for act in rec_A['immediate_actions']: st.write(f"🔴 {act}")
-            for act in rec_A['medium_term_actions']: st.write(f"🟡 {act}")
-            for act in rec_A['long_term_strategy']: st.write(f"🟢 {act}")
+            st.markdown("**🔴 Immediate**")
+            for act in rec_A['immediate_actions']: st.write(f"- {act}")
+            st.markdown("**🟡 Manager / HR**")
+            for act in rec_A['medium_term_actions']: st.write(f"- {act}")
+            st.markdown("**🟢 Long-Term**")
+            for act in rec_A['long_term_strategy']: st.write(f"- {act}")
             
     with r2:
         with st.container(border=True):
             st.markdown("### Employee B")
-            for act in rec_B['immediate_actions']: st.write(f"🔴 {act}")
-            for act in rec_B['medium_term_actions']: st.write(f"🟡 {act}")
-            for act in rec_B['long_term_strategy']: st.write(f"🟢 {act}")
+            st.markdown("**🔴 Immediate**")
+            for act in rec_B['immediate_actions']: st.write(f"- {act}")
+            st.markdown("**🟡 Manager / HR**")
+            for act in rec_B['medium_term_actions']: st.write(f"- {act}")
+            st.markdown("**🟢 Long-Term**")
+            for act in rec_B['long_term_strategy']: st.write(f"- {act}")
             
     st.markdown("---")
 
@@ -383,9 +451,22 @@ if ready_to_compare and emp_A_data and emp_B_data:
         ]
         
     fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(r=get_radar_vals(std_A), theta=categories, fill='toself', name='Employee A'))
-    fig.add_trace(go.Scatterpolar(r=get_radar_vals(std_B), theta=categories, fill='toself', name='Employee B'))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 4])), showlegend=True)
+    fig.add_trace(go.Scatterpolar(
+        r=get_radar_vals(std_A), theta=categories, fill='toself', name='Employee A', 
+        line_color='#2c3e50', opacity=0.8, hoverinfo='r+name'
+    ))
+    fig.add_trace(go.Scatterpolar(
+        r=get_radar_vals(std_B), theta=categories, fill='toself', name='Employee B', 
+        line_color='#e74c3c', opacity=0.8, hoverinfo='r+name'
+    ))
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 4.5], gridcolor='lightgrey', linecolor='black')
+        ), 
+        showlegend=True,
+        title="Satisfaction Overlap (Scale 1-4)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
     st.plotly_chart(fig, use_container_width=True)
     
     # ==========================================
@@ -413,3 +494,47 @@ if ready_to_compare and emp_A_data and emp_B_data:
     
     json_data = json.dumps(export_dict, indent=4)
     st.download_button("📜 Download JSON", data=json_data, file_name="employee_comparison.json", mime="application/json")
+    
+    def generate_comp_pdf(std_A, prob_A, std_B, prob_B, summary_text):
+        buffer = BytesIO()
+        
+        def add_footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 9)
+            canvas.setFillColor(colors.gray)
+            canvas.drawString(inch, 0.75 * inch, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            canvas.drawRightString(7.5 * inch, 0.75 * inch, f"Page {doc.page}")
+            canvas.restoreState()
+
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
+        
+        elements = []
+        styles = getSampleStyleSheet()
+        title_style = styles['Title']
+        h2_style = styles['Heading2']
+        normal_style = styles['Normal']
+        
+        elements.append(Paragraph("Enterprise Employee Comparison Report", title_style))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("Executive insights detailing comparative attrition risk and retention strategies.", normal_style))
+        elements.append(Spacer(1, 24))
+        
+        elements.append(Paragraph("Executive Summary", h2_style))
+        for s in summary_text:
+            elements.append(Paragraph(f"• {s}", normal_style))
+            elements.append(Spacer(1, 6))
+            
+        elements.append(Spacer(1, 12))
+        
+        elements.append(Paragraph(f"<b>Employee A Risk:</b> {prob_A*100:.1f}%", normal_style))
+        elements.append(Paragraph(f"<b>Employee B Risk:</b> {prob_B*100:.1f}%", normal_style))
+        
+        doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+        buffer.seek(0)
+        return buffer.read()
+
+    try:
+        pdf_bytes = generate_comp_pdf(std_A, prob_A, std_B, prob_B, summary)
+        st.download_button("📑 Download Executive PDF", data=pdf_bytes, file_name="Employee_Comparison.pdf", mime="application/pdf")
+    except Exception as e:
+        st.error("PDF generation failed.")

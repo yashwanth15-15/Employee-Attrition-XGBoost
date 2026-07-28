@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 from io import BytesIO
 
 # Import database function
@@ -14,6 +15,8 @@ from database import get_predictions
 # For PDF export
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
 from reportlab.lib import colors
 
 st.set_page_config(page_title="Retention Cost Planning", layout="wide", page_icon="💰")
@@ -31,18 +34,33 @@ st.markdown("Executive financial dashboard estimating organizational attrition c
 def load_data():
     df = get_predictions()
     if not df.empty:
-        df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        df['prediction_probability'] = pd.to_numeric(df['prediction_probability'])
-        df['monthly_income'] = pd.to_numeric(df['monthly_income'])
-        df['replacement_cost'] = pd.to_numeric(df['replacement_cost'])
-        df['job_satisfaction'] = pd.to_numeric(df['job_satisfaction'])
-        df['work_life_balance'] = pd.to_numeric(df['work_life_balance'])
+        # Define defaults for numeric optional columns
+        numeric_defaults = {
+            'prediction_probability': 0.0,
+            'monthly_income': 0.0,
+            'replacement_cost': 0.0,
+            'job_satisfaction': 3.0,
+            'work_life_balance': 3.0
+        }
+        for col, default in numeric_defaults.items():
+            if col not in df.columns:
+                df[col] = default
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default)
+            
+        if 'prediction_date' not in df.columns:
+            df['prediction_date'] = pd.Timestamp.now()
+        df['prediction_date'] = pd.to_datetime(df['prediction_date'], errors='coerce')
+        
+        # String/Categorical fallbacks
+        for col in ['department', 'risk_category', 'overtime']:
+            if col not in df.columns:
+                df[col] = 'Unknown' if col != 'overtime' else 'No'
     return df
 
 df = load_data()
 
 if df.empty:
-    st.info("ℹ️ No employee predictions available yet. Please generate predictions to view financial analytics.")
+    st.info("ℹ️ No historical data available. Generate employee predictions to unlock financial analytics.")
     st.stop()
 
 # ==========================================
@@ -59,6 +77,8 @@ avg_replacement_cost = df['replacement_cost'].mean() if total_workforce > 0 else
 dept_costs = df.groupby('department')['replacement_cost'].sum().reset_index()
 highest_cost_dept = dept_costs.sort_values('replacement_cost', ascending=False).iloc[0]['department'] if not dept_costs.empty else "N/A"
 
+health_score = 100 - (len(high_risk_df) / total_workforce * 100 if total_workforce > 0 else 0)
+
 # ==========================================
 # SECTION 1: EXECUTIVE KPIs
 # ==========================================
@@ -68,92 +88,117 @@ k1, k2, k3, k4 = st.columns(4)
 k1.metric("👥 Total Workforce", total_workforce)
 k2.metric("🔴 High Risk Employees", high_risk_count)
 k3.metric("💸 Total Org Replacement Cost", f"₹{total_replacement_cost:,.2f}")
-k4.metric("🚨 Potential Annual Attrition Cost", f"₹{annual_attrition_cost:,.2f}")
+k4.metric("🚨 Current Exposure", f"₹{annual_attrition_cost:,.2f}")
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("📊 Average Replacement Cost", f"₹{avg_replacement_cost:,.2f}")
 c2.metric("🏢 Highest Cost Dept", highest_cost_dept)
-c3.metric("🎯 Recommended Retention Budget", f"₹{annual_attrition_cost * 0.10:,.2f}")
-c4.metric("📈 Baseline ROI Potential", "High")
+c3.metric("🎯 Retention Readiness Score", f"{int(health_score)}/100")
+c4.metric("📈 Financial Health", "Optimal" if high_risk_count == 0 else "Needs Attention" if high_risk_count > (total_workforce * 0.1) else "Stable")
 
 st.markdown("---")
 
-# ==========================================
-# SECTION 3: WHAT-IF BUSINESS SCENARIOS
-# ==========================================
-st.subheader("🧪 What-If Business Scenarios")
-st.write("Simulate the financial impact of running a retention program that successfully reduces high-risk attrition.")
-
-sim_col1, sim_col2 = st.columns([1, 2])
-
-with sim_col1:
-    with st.container(border=True):
-        st.markdown("#### Program Success Rate")
-        success_rate = st.slider("Target Attrition Reduction (%)", min_value=0, max_value=50, step=5, value=15)
-        
-        retention_budget = annual_attrition_cost * 0.10
-        st.caption(f"Assuming a budget of **₹{retention_budget:,.2f}** (10% of total risk exposure).")
-
-with sim_col2:
-    savings = annual_attrition_cost * (success_rate / 100)
-    remaining_cost = annual_attrition_cost - savings
-    roi = ((savings - retention_budget) / retention_budget) * 100 if retention_budget > 0 else 0
+# Handle Zero Risk State Gracefully
+if high_risk_count == 0:
+    st.success("🟢 **Excellent Workforce Stability**\n\nNo immediate financial exposure from high-risk attrition has been detected. Retention budget can remain unallocated.")
     
-    r1, r2, r3 = st.columns(3)
-    with st.container(border=True):
-        sc1, sc2, sc3 = st.columns(3)
-        sc1.metric("Estimated Savings (Cost Avoided)", f"₹{savings:,.2f}")
-        sc2.metric("Remaining Financial Exposure", f"₹{remaining_cost:,.2f}")
-        
-        if roi > 0:
-            sc3.metric("Estimated Program ROI", f"+{roi:,.1f}%")
-        else:
-            sc3.metric("Estimated Program ROI", f"{roi:,.1f}%", delta_color="inverse")
+    # We set default variables so code below doesn't break, but hide the what-if visual
+    success_rate = 15
+    retention_budget = 0
+    savings = 0
+    roi = 0
+else:
+    # ==========================================
+    # SECTION 3: WHAT-IF BUSINESS SCENARIOS
+    # ==========================================
+    st.subheader("🧪 What-If Business Scenarios")
+    st.write("Simulate the financial impact of running a retention program that successfully reduces high-risk attrition.")
 
-st.markdown("---")
+    sim_col1, sim_col2 = st.columns([1, 2])
+
+    with sim_col1:
+        with st.container(border=True):
+            st.markdown("#### Program Success Rate")
+            success_rate = st.slider("Target Attrition Reduction (%)", min_value=0, max_value=50, step=5, value=15)
+            
+            retention_budget = annual_attrition_cost * 0.10
+            st.caption(f"Assuming a fixed budget of **₹{retention_budget:,.2f}** (10% of total risk exposure).")
+
+    with sim_col2:
+        savings = annual_attrition_cost * (success_rate / 100)
+        remaining_cost = annual_attrition_cost - savings
+        roi = ((savings - retention_budget) / retention_budget) * 100 if retention_budget > 0 else 0
+        
+        with st.container(border=True):
+            sc1, sc2, sc3 = st.columns(3)
+            sc1.metric("Potential Savings", f"₹{savings:,.2f}")
+            sc2.metric("Remaining Financial Exposure", f"₹{remaining_cost:,.2f}")
+            
+            if roi > 0:
+                sc3.metric("Estimated ROI", f"+{roi:,.1f}%")
+            elif roi == 0:
+                sc3.metric("Estimated ROI", "0.0%")
+            else:
+                sc3.metric("Estimated ROI", f"{roi:,.1f}%", delta_color="inverse")
+
+    st.markdown("---")
 
 # ==========================================
 # SECTION 2: FINANCIAL ANALYTICS
 # ==========================================
-st.subheader("📊 Financial Analytics")
+if high_risk_count > 0:
+    st.subheader("📊 Financial Analytics")
 
-v1, v2 = st.columns(2)
-with v1:
-    # Replacement Cost by Department
-    fig_bar = px.bar(dept_costs, x='department', y='replacement_cost', color='replacement_cost', 
-                     color_continuous_scale='Reds', title='Total Financial Exposure by Department')
-    fig_bar.update_layout(yaxis_title="Replacement Cost (₹)", xaxis_title="Department")
-    st.plotly_chart(fig_bar, use_container_width=True)
+    v1, v2 = st.columns(2)
+    with v1:
+        # Replacement Cost by Department
+        fig_bar = px.bar(dept_costs, x='department', y='replacement_cost', color='replacement_cost', 
+                         color_continuous_scale='Reds', title='Total Financial Exposure by Department')
+        fig_bar.update_layout(yaxis_title="Replacement Cost (₹)", xaxis_title="Department")
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-with v2:
-    # Attrition Cost Distribution (Pie)
-    if not high_risk_df.empty:
-        high_dept_costs = high_risk_df.groupby('department')['replacement_cost'].sum().reset_index()
-        fig_pie = px.pie(high_dept_costs, names='department', values='replacement_cost', hole=0.4, 
-                         title="High-Risk Cost Breakdown by Department")
-        st.plotly_chart(fig_pie, use_container_width=True)
-    else:
-        st.info("No high-risk cost distribution available.")
+    with v2:
+        # Cost vs Risk Bubble Chart
+        fig_bubble = px.scatter(df, x='prediction_probability', y='replacement_cost', 
+                                size='monthly_income', color='risk_category', hover_name='department',
+                                color_discrete_map={'High': 'salmon', 'Medium': 'gold', 'Low': 'lightgreen'},
+                                title="Cost vs Risk (Bubble Size = Income)")
+        fig_bubble.update_layout(xaxis_title="Attrition Risk Probability", yaxis_title="Replacement Cost (₹)")
+        st.plotly_chart(fig_bubble, use_container_width=True)
 
-v3, v4 = st.columns(2)
-with v3:
-    # Salary vs Replacement Cost
-    fig_scatter = px.scatter(df, x='monthly_income', y='replacement_cost', color='risk_category',
-                             color_discrete_map={'High': 'salmon', 'Medium': 'gold', 'Low': 'lightgreen'}, 
-                             title='Salary vs Replacement Cost')
-    fig_scatter.update_layout(xaxis_title="Monthly Income (₹)", yaxis_title="Replacement Cost (₹)")
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    v3, v4 = st.columns(2)
+    with v3:
+        # Potential Savings Gauge
+        fig_gauge = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = savings,
+            title = {'text': f"Potential Savings at {success_rate}% Success (₹)"},
+            gauge = {
+                'axis': {'range': [0, annual_attrition_cost]},
+                'bar': {'color': "green"},
+                'steps' : [
+                    {'range': [0, annual_attrition_cost*0.3], 'color': "lightgray"},
+                    {'range': [annual_attrition_cost*0.3, annual_attrition_cost*0.7], 'color': "silver"}
+                ],
+            }
+        ))
+        fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
+        st.plotly_chart(fig_gauge, use_container_width=True)
 
-with v4:
-    # Risk Categories Financial Weight
-    risk_weights = df.groupby('risk_category')['replacement_cost'].sum().reset_index()
-    fig_weight = px.bar(risk_weights, x='risk_category', y='replacement_cost', color='risk_category',
-                        color_discrete_map={'High': 'salmon', 'Medium': 'gold', 'Low': 'lightgreen'},
-                        title='Financial Weight by Risk Category')
-    fig_weight.update_layout(yaxis_title="Total Replacement Cost (₹)")
-    st.plotly_chart(fig_weight, use_container_width=True)
+    with v4:
+        # Budget Allocation Pie Chart
+        budget_dist = pd.DataFrame({
+            'Category': ['Rewards', 'Training', 'Recruiting', 'Engagement'],
+            'Amount': [retention_budget*0.4, retention_budget*0.3, retention_budget*0.2, retention_budget*0.1]
+        })
+        
+        if retention_budget > 0:
+            fig_budget_pie = px.pie(budget_dist, names='Category', values='Amount', hole=0.5,
+                                    title='Recommended Budget Allocation',
+                                    color_discrete_sequence=px.colors.sequential.Blues_r)
+            st.plotly_chart(fig_budget_pie, use_container_width=True)
 
-st.markdown("---")
+    st.markdown("---")
 
 # ==========================================
 # SECTION 5: PRIORITY MATRIX
@@ -197,21 +242,26 @@ with b_col1:
         st.markdown("#### 🧠 Auto-Generated Financial Insights")
         
         insights = []
-        if total_replacement_cost > 0:
-            high_risk_pct = (annual_attrition_cost / total_replacement_cost) * 100
-            insights.append(f"High-risk employees account for **{high_risk_pct:.1f}%** of the total organizational replacement value.")
-            
-        if not dept_metrics.empty:
-            top_dept = dept_metrics.iloc[0]
-            if top_dept['Financial_Risk'] > 0:
-                insights.append(f"**{top_dept['department']}** is the highest priority department, contributing **₹{top_dept['Financial_Risk']:,.2f}** to projected attrition costs.")
+        if high_risk_count == 0:
+            insights.append("Current workforce demonstrates excellent retention health.")
+            insights.append("No departments currently require urgent retention investment.")
+            insights.append("Continue periodic monitoring and employee engagement initiatives.")
+        else:
+            if total_replacement_cost > 0:
+                high_risk_pct = (annual_attrition_cost / total_replacement_cost) * 100
+                insights.append(f"High-risk employees account for **{high_risk_pct:.1f}%** of the total organizational replacement value.")
                 
-        ot_high = df[(df['overtime'] == 'Yes') & (df['risk_category'] == 'High')]
-        if not ot_high.empty:
-            ot_cost = ot_high['replacement_cost'].sum()
-            insights.append(f"Reducing overtime for high-risk profiles could intercept up to **₹{ot_cost:,.2f}** in attrition exposure.")
-            
-        insights.append(f"An intervention achieving a {success_rate}% success rate will save approximately **₹{savings:,.2f}** annually.")
+            if not dept_metrics.empty:
+                top_dept = dept_metrics.iloc[0]
+                if top_dept['Financial_Risk'] > 0:
+                    insights.append(f"**{top_dept['department']}** is the highest priority department, contributing **₹{top_dept['Financial_Risk']:,.2f}** to projected attrition costs.")
+                    
+            ot_high = df[(df['overtime'] == 'Yes') & (df['risk_category'] == 'High')]
+            if not ot_high.empty:
+                ot_cost = ot_high['replacement_cost'].sum()
+                insights.append(f"Reducing overtime for high-risk profiles could intercept up to **₹{ot_cost:,.2f}** in attrition exposure.")
+                
+            insights.append(f"An intervention achieving a {success_rate}% success rate will save approximately **₹{savings:,.2f}** annually.")
         
         for insight in insights:
             st.info(f"💡 {insight}")
@@ -219,20 +269,23 @@ with b_col1:
 with b_col2:
     with st.container(border=True):
         st.markdown("#### 💰 Suggested Budget Allocation")
-        st.caption(f"Based on 10% of total exposed risk (₹{retention_budget:,.2f})")
         
-        b1, b2 = st.columns([3, 1])
-        b1.write("🏆 Rewards & Bonuses (40%)")
-        b2.write(f"₹{retention_budget * 0.40:,.0f}")
-        
-        b1.write("🎓 Training & Upskilling (30%)")
-        b2.write(f"₹{retention_budget * 0.30:,.0f}")
-        
-        b1.write("🤝 Recruiting Padding (20%)")
-        b2.write(f"₹{retention_budget * 0.20:,.0f}")
-        
-        b1.write("🎉 Employee Engagement (10%)")
-        b2.write(f"₹{retention_budget * 0.10:,.0f}")
+        if high_risk_count == 0:
+            st.info("No retention budget allocation is currently required because no high-risk workforce exposure exists.")
+        else:
+            st.caption(f"Based on 10% of total exposed risk (₹{retention_budget:,.2f})")
+            b1, b2 = st.columns([3, 1])
+            b1.write("🏆 Rewards & Bonuses (40%)")
+            b2.write(f"₹{retention_budget * 0.40:,.0f}")
+            
+            b1.write("🎓 Training & Upskilling (30%)")
+            b2.write(f"₹{retention_budget * 0.30:,.0f}")
+            
+            b1.write("🤝 Recruiting Padding (20%)")
+            b2.write(f"₹{retention_budget * 0.20:,.0f}")
+            
+            b1.write("🎉 Employee Engagement (10%)")
+            b2.write(f"₹{retention_budget * 0.10:,.0f}")
 
 st.markdown("---")
 
@@ -251,38 +304,60 @@ with ex_col2:
     st.download_button("📜 Download Priority JSON", data=json_data, file_name="retention_priority.json", mime="application/json", width="stretch")
 
 # PDF Generation
-def generate_financial_pdf(dept_metrics_df, total_cost, target_savings):
+def generate_financial_pdf(dept_metrics_df, total_cost, target_savings, insights_text):
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer)
+    
+    def add_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 9)
+        canvas.setFillColor(colors.gray)
+        canvas.drawString(inch, 0.75 * inch, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        canvas.drawRightString(7.5 * inch, 0.75 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
+    
     elements = []
     styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    h2_style = styles['Heading2']
+    normal_style = styles['Normal']
     
-    elements.append(Paragraph("Executive Financial Retention Report", styles['Title']))
+    elements.append(Paragraph("Enterprise Financial Retention Report", title_style))
     elements.append(Spacer(1, 12))
     
-    elements.append(Paragraph(f"Total Potential Attrition Cost: INR {total_cost:,.2f}", styles['Normal']))
-    elements.append(Paragraph(f"Target Savings at {success_rate}% success: INR {target_savings:,.2f}", styles['Normal']))
+    elements.append(Paragraph("Executive Summary", h2_style))
+    elements.append(Paragraph(f"<b>Total Potential Attrition Exposure:</b> INR {total_cost:,.2f}", normal_style))
+    elements.append(Paragraph(f"<b>Target Savings:</b> INR {target_savings:,.2f}", normal_style))
+    elements.append(Spacer(1, 12))
+    
+    elements.append(Paragraph("Insights", h2_style))
+    for ins in insights_text:
+        elements.append(Paragraph(f"• {ins}", normal_style))
+        elements.append(Spacer(1, 6))
+        
     elements.append(Spacer(1, 12))
     
     data = [dept_metrics_df.columns.tolist()] + dept_metrics_df.round(2).values.tolist()
     
     t = Table(data)
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2c3e50')),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('BOTTOMPADDING', (0,0), (-1,0), 12),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-        ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ('BACKGROUND', (0,1), (-1,-1), colors.whitesmoke),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#bdc3c7'))
     ]))
     elements.append(t)
-    doc.build(elements)
+    
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     return buffer.read()
 
 try:
-    pdf_bytes = generate_financial_pdf(dept_metrics, annual_attrition_cost, savings)
+    pdf_bytes = generate_financial_pdf(dept_metrics, annual_attrition_cost, savings, insights)
     with ex_col3:
         st.download_button("📑 Download Financial PDF", data=pdf_bytes, file_name="Financial_Retention_Report.pdf", mime="application/pdf", width="stretch")
 except Exception as e:
