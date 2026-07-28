@@ -75,8 +75,10 @@ def add_prediction(record: dict):
     columns = ', '.join(record.keys())
     placeholders = ', '.join(['?'] * len(record))
     cursor.execute(f"INSERT INTO predictions ({columns}) VALUES ({placeholders})", tuple(record.values()))
+    pred_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    return pred_id
 
 
 def get_predictions(filters: dict = None) -> pd.DataFrame:
