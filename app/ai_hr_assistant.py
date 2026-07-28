@@ -1,14 +1,21 @@
 import streamlit as st
-import google.generativeai as genai
 from helpers.risk_calculator import calculate_risk
 
-# Configure Gemini API
-genai.configure(
-    api_key=st.secrets["GEMINI_API_KEY"]
-)
+GEMINI_AVAILABLE = False
+model = None
 
-# Load Gemini Model
-model = genai.GenerativeModel("gemini-1.5-flash")
+try:
+    import google.generativeai as genai
+    
+    # Safely get API key
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    
+    if api_key:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        GEMINI_AVAILABLE = True
+except Exception:
+    GEMINI_AVAILABLE = False
 
 
 def generate_hr_analysis(employee, probability):
@@ -16,6 +23,8 @@ def generate_hr_analysis(employee, probability):
     Generate professional HR recommendations based on
     employee information and predicted attrition probability.
     """
+    if not GEMINI_AVAILABLE:
+        return None
 
     # Determine Risk Level
     risk_level = calculate_risk(probability)
