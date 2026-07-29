@@ -206,19 +206,26 @@ with tab_db:
     if db_df.empty:
         st.info("No predictions found in the database. Generate predictions first.")
     else:
-        # Fallback for missing string columns
-        for col in ["department", "prediction_date"]:
-            if col not in db_df.columns:
-                db_df[col] = "Unknown"
+        if "id" not in db_df.columns:
+            st.warning(
+                "Cannot compare employees: The database is missing the 'id' column."
+            )
+            st.stop()
+
+        # Build label with fallbacks
+        dept_str = (
+            db_df["department"].astype(str)
+            if "department" in db_df.columns
+            else "Unknown Dept"
+        )
+        date_str = (
+            db_df["prediction_date"].astype(str).str.split(" ").str[0]
+            if "prediction_date" in db_df.columns
+            else "Unknown Date"
+        )
 
         db_df["label"] = (
-            "ID: "
-            + db_df["id"].astype(str)
-            + " - "
-            + db_df["department"]
-            + " ("
-            + db_df["prediction_date"].astype(str).str.split(" ").str[0]
-            + ")"
+            "ID: " + db_df["id"].astype(str) + " - " + dept_str + " (" + date_str + ")"
         )
 
         col1, col2 = st.columns(2)

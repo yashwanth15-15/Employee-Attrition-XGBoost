@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-from api.models.schemas import EmployeeFeatures, SimulationRequest, SimulationResponse
+from api.models.schemas import (EmployeeFeatures, SimulationRequest,
+                                SimulationResponse)
 from api.services.ml_service import ml_service
 
 router = APIRouter(prefix="/simulate", tags=["Simulation"])

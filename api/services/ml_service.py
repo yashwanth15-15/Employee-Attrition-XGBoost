@@ -7,12 +7,8 @@ import pandas as pd
 import shap
 
 from api.config import settings
-from api.core.exceptions import (
-    ModelLoadError,
-    PredictionError,
-    PreprocessingError,
-    SHAPGenerationError,
-)
+from api.core.exceptions import (ModelLoadError, PredictionError,
+                                 PreprocessingError, SHAPGenerationError)
 from api.core.logger import logger
 from api.utils.risk_calculator import calculate_risk
 

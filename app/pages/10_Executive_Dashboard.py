@@ -5,12 +5,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from helpers.executive_dashboard import (
-    compute_insights,
-    compute_kpis,
-    generate_pdf_summary,
-    load_data,
-)
+from helpers.executive_dashboard import (compute_insights, compute_kpis,
+                                         generate_pdf_summary, load_data)
 
 st.set_page_config(page_title="Executive Dashboard", layout="wide")
 
@@ -42,6 +38,15 @@ if raw_df.empty:
     st.info("No prediction records available.")
     st.stop()
 
+# Ensure required columns exist
+required_columns = ["prediction_probability", "department", "risk_category"]
+missing_req = [col for col in required_columns if col not in raw_df.columns]
+if missing_req:
+    st.warning(
+        f"Required columns are missing ({', '.join(missing_req)}). Analytics cannot be generated."
+    )
+    st.stop()
+
 # Populate department filter options dynamically
 departments = sorted(raw_df["department"].dropna().unique())
 selected_departments = st.sidebar.multiselect(
@@ -62,6 +67,9 @@ filters = {
 
 with st.spinner("Loading Executive Dashboard Data..."):
     df = load_data(filters)
+    if df.empty:
+        st.warning("No data matches the selected filters.")
+        st.stop()
     kpis = compute_kpis(df)
     insights = compute_insights(df)
 
@@ -73,22 +81,31 @@ col3.metric("Medium Risk Employees", kpis["medium"])
 col4.metric("Low Risk Employees", kpis["low"])
 col5, col6, col7, col8 = st.columns(4)
 col5.metric("Avg Attrition Prob.", f"{kpis['avg_prob']*100:.2f}%")
-col6.metric("Avg Health Score", f"{kpis['avg_health']:.1f}")
-col7.metric("Avg Monthly Income", f"₹{kpis['avg_income']:,.0f}")
-col8.metric("Est. Total Replacement Cost", f"₹{kpis['total_cost']:,.0f}")
+col6.metric(
+    "Avg Health Score", f"{kpis['avg_health']:.1f}" if kpis["avg_health"] else "N/A"
+)
+col7.metric(
+    "Avg Monthly Income", f"₹{kpis['avg_income']:,.0f}" if kpis["avg_income"] else "N/A"
+)
+col8.metric(
+    "Est. Total Replacement Cost",
+    f"₹{kpis['total_cost']:,.0f}" if kpis["total_cost"] else "N/A",
+)
 
 st.divider()
 
 # ---------- Advanced Insights ----------
 with st.expander("🔍 Automated Insights"):
-    for insight in insights:
-        st.markdown(insight, unsafe_allow_html=True)
+    if insights:
+        for insight in insights:
+            st.markdown(insight, unsafe_allow_html=True)
+    else:
+        st.info("No insights available due to missing data columns.")
 
 st.divider()
 
 # ---------- Charts ----------
 # 1. Department-wise Attrition Rate (Bar)
-dept_counts = df.groupby("department").size().reset_index(name="count")
 dept_prob = (
     df.groupby("department")["prediction_probability"]
     .mean()
@@ -117,101 +134,112 @@ fig_risk.update_layout(title_text="Risk Category Distribution")
 st.plotly_chart(fig_risk, width="stretch")
 
 # 3. Prediction Trend Over Time (Line)
-trend_df = df.copy()
-trend_df["date"] = pd.to_datetime(trend_df["prediction_date"]).dt.date
-trend = trend_df.groupby("date")["prediction_probability"].mean().reset_index()
+if "prediction_date" in df.columns:
+    trend_df = df.copy()
+    trend_df["date"] = pd.to_datetime(trend_df["prediction_date"]).dt.date
+    trend = trend_df.groupby("date")["prediction_probability"].mean().reset_index()
 
-if len(df) < 20:
-    st.info("Trend analysis becomes available after at least 20 employee predictions.")
+    if len(df) < 20:
+        st.info(
+            "Trend analysis becomes available after at least 20 employee predictions."
+        )
+    else:
+        fig_trend = px.line(
+            trend,
+            x="date",
+            y="prediction_probability",
+            title="Avg Attrition Probability Over Time",
+            labels={"prediction_probability": "Avg Probability"},
+        )
+        st.plotly_chart(fig_trend, width="stretch")
 else:
-    fig_trend = px.line(
-        trend,
-        x="date",
-        y="prediction_probability",
-        title="Avg Attrition Probability Over Time",
-        labels={"prediction_probability": "Avg Probability"},
-    )
-    st.plotly_chart(fig_trend, width="stretch")
+    st.warning("Prediction trend chart skipped (prediction_date missing).")
 
 # 4. Health Score Distribution (Histogram)
-fig_health = px.histogram(
-    df, x="health_score", nbins=20, title="Health Score Distribution"
-)
-st.plotly_chart(fig_health, width="stretch")
+if "health_score" in df.columns:
+    fig_health = px.histogram(
+        df, x="health_score", nbins=20, title="Health Score Distribution"
+    )
+    st.plotly_chart(fig_health, width="stretch")
+else:
+    st.warning("Health score distribution chart skipped (health_score missing).")
 
 # 5. Monthly Income vs Attrition Probability (Scatter)
-fig_scatter = px.scatter(
-    df,
-    x="monthly_income",
-    y="prediction_probability",
-    color="risk_category",
-    title="Income vs Attrition Probability",
-    labels={
-        "monthly_income": "Monthly Income",
-        "prediction_probability": "Attrition Prob.",
-    },
-)
-st.plotly_chart(fig_scatter, width="stretch")
+if "monthly_income" in df.columns:
+    fig_scatter = px.scatter(
+        df,
+        x="monthly_income",
+        y="prediction_probability",
+        color="risk_category",
+        title="Income vs Attrition Probability",
+        labels={
+            "monthly_income": "Monthly Income",
+            "prediction_probability": "Attrition Prob.",
+        },
+    )
+    st.plotly_chart(fig_scatter, width="stretch")
+else:
+    st.warning("Income vs Attrition chart skipped (monthly_income missing).")
 
 # 6. Department Average Health Score (Horizontal Bar)
-dept_health = df.groupby("department")["health_score"].mean().reset_index()
-fig_dept_health = px.bar(
-    dept_health,
-    y="department",
-    x="health_score",
-    orientation="h",
-    title="Dept Avg Health Score",
-)
-st.plotly_chart(fig_dept_health, width="stretch")
+if "health_score" in df.columns:
+    dept_health = df.groupby("department")["health_score"].mean().reset_index()
+    fig_dept_health = px.bar(
+        dept_health,
+        y="department",
+        x="health_score",
+        orientation="h",
+        title="Dept Avg Health Score",
+    )
+    st.plotly_chart(fig_dept_health, width="stretch")
 
 # 7. Replacement Cost by Department (Treemap)
-dept_cost = df.groupby("department")["replacement_cost"].sum().reset_index()
-fig_treemap = px.treemap(
-    dept_cost,
-    path=["department"],
-    values="replacement_cost",
-    title="Replacement Cost by Department",
-)
-st.plotly_chart(fig_treemap, width="stretch")
+if "replacement_cost" in df.columns:
+    dept_cost = df.groupby("department")["replacement_cost"].sum().reset_index()
+    fig_treemap = px.treemap(
+        dept_cost,
+        path=["department"],
+        values="replacement_cost",
+        title="Replacement Cost by Department",
+    )
+    st.plotly_chart(fig_treemap, width="stretch")
+else:
+    st.warning("Replacement cost treemap skipped (replacement_cost missing).")
 
 # 8. Overtime vs Risk Category (Stacked Bar)
-overtime_risk = (
-    df.groupby(["overtime", "risk_category"]).size().reset_index(name="count")
-)
-fig_overtime = px.bar(
-    overtime_risk,
-    x="overtime",
-    y="count",
-    color="risk_category",
-    title="Overtime vs Risk Category",
-    barmode="stack",
-)
-st.plotly_chart(fig_overtime, width="stretch")
+if "overtime" in df.columns:
+    overtime_risk = (
+        df.groupby(["overtime", "risk_category"]).size().reset_index(name="count")
+    )
+    fig_overtime = px.bar(
+        overtime_risk,
+        x="overtime",
+        y="count",
+        color="risk_category",
+        title="Overtime vs Risk Category",
+        barmode="stack",
+    )
+    st.plotly_chart(fig_overtime, width="stretch")
+else:
+    st.warning("Overtime chart skipped (overtime missing).")
 
 st.divider()
 
 # ---------- Top Risk Table ----------
 st.subheader("Top 10 Highest Risk Employees")
+top_cols = ["employee_name", "department", "prediction_probability", "risk_category"]
+optional_cols = ["age", "gender", "health_score", "monthly_income", "replacement_cost"]
+available_cols = [c for c in top_cols + optional_cols if c in df.columns]
+
 if not df.empty:
-    top10 = df.nlargest(10, "prediction_probability")[
-        [
-            "employee_name",
-            "age",
-            "gender",
-            "department",
-            "prediction_probability",
-            "risk_category",
-            "health_score",
-            "monthly_income",
-            "replacement_cost",
-        ]
-    ]
+    top10 = df.nlargest(10, "prediction_probability")[available_cols]
+    rename_map = {
+        "prediction_probability": "Prob",
+        "monthly_income": "Income",
+        "replacement_cost": "Cost",
+    }
     top10 = top10.rename(
-        columns={
-            "prediction_probability": "Prob",
-            "monthly_income": "Income",
-            "replacement_cost": "Cost",
-        }
+        columns={k: v for k, v in rename_map.items() if k in top10.columns}
     )
     st.dataframe(top10, width="stretch", hide_index=True)
 

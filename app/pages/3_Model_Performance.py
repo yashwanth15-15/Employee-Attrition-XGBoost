@@ -6,20 +6,11 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sklearn.metrics import (
-    accuracy_score,
-    balanced_accuracy_score,
-    classification_report,
-    cohen_kappa_score,
-    confusion_matrix,
-    f1_score,
-    matthews_corrcoef,
-    precision_recall_curve,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-    roc_curve,
-)
+from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
+                             classification_report, cohen_kappa_score,
+                             confusion_matrix, f1_score, matthews_corrcoef,
+                             precision_recall_curve, precision_score,
+                             recall_score, roc_auc_score, roc_curve)
 from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Model Performance", layout="wide")

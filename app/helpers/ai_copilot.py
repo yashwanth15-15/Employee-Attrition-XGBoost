@@ -22,27 +22,27 @@ def load_data(filters=None) -> pd.DataFrame:
     if df.empty:
         return df
     if filters:
-        if filters.get("department"):
+        if filters.get("department") and "department" in df.columns:
             df = df[df["department"].isin(filters["department"])]
-        if filters.get("risk_category"):
+        if filters.get("risk_category") and "risk_category" in df.columns:
             df = df[df["risk_category"].isin(filters["risk_category"])]
-        if filters.get("start_date"):
+        if filters.get("start_date") and "prediction_date" in df.columns:
             df = df[
                 pd.to_datetime(df["prediction_date"])
                 >= pd.to_datetime(filters["start_date"])
             ]
-        if filters.get("end_date"):
+        if filters.get("end_date") and "prediction_date" in df.columns:
             df = df[
                 pd.to_datetime(df["prediction_date"])
                 <= pd.to_datetime(filters["end_date"])
             ]
-        if filters.get("min_health") is not None:
+        if filters.get("min_health") is not None and "health_score" in df.columns:
             df = df[df["health_score"] >= filters["min_health"]]
-        if filters.get("max_health") is not None:
+        if filters.get("max_health") is not None and "health_score" in df.columns:
             df = df[df["health_score"] <= filters["max_health"]]
-        if filters.get("min_income") is not None:
+        if filters.get("min_income") is not None and "monthly_income" in df.columns:
             df = df[df["monthly_income"] >= filters["min_income"]]
-        if filters.get("max_income") is not None:
+        if filters.get("max_income") is not None and "monthly_income" in df.columns:
             df = df[df["monthly_income"] <= filters["max_income"]]
     return df
 
@@ -86,6 +86,12 @@ def answer_locally(intent: str, df: pd.DataFrame):
         return "No prediction data is available.", None
     try:
         if intent == "top_risk":
+            if (
+                "prediction_probability" not in df.columns
+                or "employee_name" not in df.columns
+                or "department" not in df.columns
+            ):
+                return "Cannot determine top risk (missing required columns).", None
             top = df.nlargest(5, "prediction_probability")[
                 ["employee_name", "department", "prediction_probability"]
             ]
@@ -97,6 +103,14 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
             return f"**Top 5 highest‑risk employees**:\n{rows}", None
         if intent == "department_risk":
+            if (
+                "department" not in df.columns
+                or "prediction_probability" not in df.columns
+            ):
+                return (
+                    "Cannot determine department risk (missing required columns).",
+                    None,
+                )
             dept = (
                 df.groupby("department")["prediction_probability"].mean().reset_index()
             )
@@ -108,9 +122,19 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
             return "Average attrition probability by department:", fig
         if intent == "high_risk_count":
+            if "risk_category" not in df.columns:
+                return (
+                    "Cannot determine high risk count (missing risk_category column).",
+                    None,
+                )
             cnt = (df["risk_category"].str.lower() == "high").sum()
             return f"There are **{cnt}** high‑risk employees in the database.", None
         if intent == "summary_today":
+            if "prediction_date" not in df.columns or "risk_category" not in df.columns:
+                return (
+                    "Cannot summarize today (missing prediction_date or risk_category columns).",
+                    None,
+                )
             today = datetime.now().date()
             today_df = df[pd.to_datetime(df["prediction_date"]).dt.date == today]
             total = len(today_df)
@@ -120,6 +144,12 @@ def answer_locally(intent: str, df: pd.DataFrame):
                 None,
             )
         if intent == "low_health":
+            if (
+                "health_score" not in df.columns
+                or "employee_name" not in df.columns
+                or "department" not in df.columns
+            ):
+                return "Cannot check health scores (missing required columns).", None
             low = df[df["health_score"] <= 30][
                 ["employee_name", "department", "health_score"]
             ]
@@ -133,6 +163,11 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
             return f"Employees with low health scores (≤30):\n{rows}", None
         if intent == "dept_replacement":
+            if "department" not in df.columns or "replacement_cost" not in df.columns:
+                return (
+                    "Cannot calculate department replacement cost (missing required columns).",
+                    None,
+                )
             cost = df.groupby("department")["replacement_cost"].sum().reset_index()
             fig = px.treemap(
                 cost,
@@ -142,14 +177,28 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
             return "Total replacement cost per department:", fig
         if intent == "retention_recommend":
+            if "risk_category" not in df.columns:
+                return (
+                    "Cannot recommend retention strategies without 'risk_category' column.",
+                    None,
+                )
             # Simple rule‑based recommendation based on top risk factors
             high_risk = df[df["risk_category"].str.lower() == "high"]
             reasons = []
-            if high_risk["overtime"].str.lower().eq("yes").any():
+            if (
+                "overtime" in df.columns
+                and high_risk["overtime"].str.lower().eq("yes").any()
+            ):
                 reasons.append("• Reduce overtime workload.")
-            if (high_risk["work_life_balance"] <= 2).any():
+            if (
+                "work_life_balance" in df.columns
+                and (high_risk["work_life_balance"] <= 2).any()
+            ):
                 reasons.append("• Introduce work‑life balance programs.")
-            if (high_risk["job_satisfaction"] <= 2).any():
+            if (
+                "job_satisfaction" in df.columns
+                and (high_risk["job_satisfaction"] <= 2).any()
+            ):
                 reasons.append("• Conduct satisfaction surveys and address concerns.")
             if not reasons:
                 reasons.append(
@@ -166,6 +215,11 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
             return txt, None
         if intent == "overtime_attrition":
+            if "overtime" not in df.columns:
+                return (
+                    "Cannot analyze overtime attrition (missing 'overtime' column).",
+                    None,
+                )
             pct = (df["overtime"].str.lower() == "yes").mean() * 100
             return (
                 f"{pct:.1f}% of recorded predictions involve employees who work overtime. Historically, overtime correlates with higher attrition risk, as reflected in the model’s feature importance.",
@@ -173,10 +227,24 @@ def answer_locally(intent: str, df: pd.DataFrame):
             )
         if intent == "executive_summary":
             total = len(df)
-            avg_prob = df["prediction_probability"].mean() * 100
-            high = (df["risk_category"].str.lower() == "high").sum()
+            avg_prob = (
+                df["prediction_probability"].mean() * 100
+                if "prediction_probability" in df.columns
+                else 0.0
+            )
+            high = (
+                (df["risk_category"].str.lower() == "high").sum()
+                if "risk_category" in df.columns
+                else 0
+            )
+            avg_health = (
+                df["health_score"].mean() if "health_score" in df.columns else 0.0
+            )
+            avg_income = (
+                df["monthly_income"].mean() if "monthly_income" in df.columns else 0.0
+            )
             return (
-                f"**Executive Summary**\n- Total predictions: {total}\n- Average attrition probability: {avg_prob:.2f}%\n- High‑risk employees: {high}\n- Avg health score: {df['health_score'].mean():.1f}\n- Avg monthly income: ₹{df['monthly_income'].mean():,.0f}"
+                f"**Executive Summary**\n- Total predictions: {total}\n- Average attrition probability: {avg_prob:.2f}%\n- High‑risk employees: {high}\n- Avg health score: {avg_health:.1f}\n- Avg monthly income: ₹{avg_income:,.0f}"
             ), None
         # General fallback
         return (

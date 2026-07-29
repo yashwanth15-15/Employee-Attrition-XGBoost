@@ -1,5 +1,4 @@
 import os
-
 # Import database function
 import sys
 from datetime import datetime
@@ -15,14 +14,8 @@ from database import get_predictions
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
-
 # For PDF export
-from reportlab.platypus import (
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-)
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 
 st.set_page_config(page_title="Department Analytics", layout="wide", page_icon="📊")
 
@@ -42,35 +35,23 @@ st.markdown(
 def load_data():
     df = get_predictions()
     if not df.empty:
-        # Define defaults for numeric optional columns
-        numeric_defaults = {
-            "prediction_probability": 0.0,
-            "monthly_income": 0.0,
-            "replacement_cost": 0.0,
-            "job_satisfaction": 3.0,
-            "environment_satisfaction": 3.0,
-            "work_life_balance": 3.0,
-        }
-        for col, default in numeric_defaults.items():
-            if col not in df.columns:
-                df[col] = default
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(default)
+        # Coerce numeric columns if they exist
+        numeric_columns = [
+            "prediction_probability",
+            "monthly_income",
+            "replacement_cost",
+            "job_satisfaction",
+            "environment_satisfaction",
+            "work_life_balance",
+        ]
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        if "prediction_date" not in df.columns:
-            df["prediction_date"] = pd.Timestamp.now()
-        df["prediction_date"] = pd.to_datetime(df["prediction_date"], errors="coerce")
-
-        # String/Categorical fallbacks
-        for col in [
-            "department",
-            "gender",
-            "marital_status",
-            "overtime",
-            "business_travel",
-            "risk_category",
-        ]:
-            if col not in df.columns:
-                df[col] = "Unknown" if col != "overtime" else "No"
+        if "prediction_date" in df.columns:
+            df["prediction_date"] = pd.to_datetime(
+                df["prediction_date"], errors="coerce"
+            )
     return df
 
 
@@ -83,42 +64,77 @@ if raw_df.empty:
     )
     st.stop()
 
+required_columns = ["department", "risk_category", "prediction_probability"]
+missing_req = [col for col in required_columns if col not in raw_df.columns]
+if missing_req:
+    st.warning(
+        f"Required columns ({', '.join(missing_req)}) are missing. Analytics cannot be generated."
+    )
+    st.stop()
+
 # ==========================================
 # SIDEBAR FILTERS
 # ==========================================
 st.sidebar.header("🔍 Interactive Filters")
 
-departments = raw_df["department"].unique().tolist()
+departments = raw_df["department"].dropna().unique().tolist()
 selected_deps = st.sidebar.multiselect("Department", departments, default=departments)
 
-genders = raw_df["gender"].unique().tolist()
-selected_gender = st.sidebar.multiselect("Gender", genders, default=genders)
+genders = (
+    raw_df["gender"].dropna().unique().tolist() if "gender" in raw_df.columns else []
+)
+if genders:
+    selected_gender = st.sidebar.multiselect("Gender", genders, default=genders)
+else:
+    selected_gender = []
 
-marital = raw_df["marital_status"].unique().tolist()
-selected_marital = st.sidebar.multiselect("Marital Status", marital, default=marital)
+marital = (
+    raw_df["marital_status"].dropna().unique().tolist()
+    if "marital_status" in raw_df.columns
+    else []
+)
+if marital:
+    selected_marital = st.sidebar.multiselect(
+        "Marital Status", marital, default=marital
+    )
+else:
+    selected_marital = []
 
 travel = (
-    raw_df["business_travel"].unique().tolist()
+    raw_df["business_travel"].dropna().unique().tolist()
     if "business_travel" in raw_df.columns
     else []
 )
 if travel:
     selected_travel = st.sidebar.multiselect("Business Travel", travel, default=travel)
 
-overtime_opts = raw_df["overtime"].unique().tolist()
-selected_ot = st.sidebar.multiselect("Overtime", overtime_opts, default=overtime_opts)
+overtime_opts = (
+    raw_df["overtime"].dropna().unique().tolist()
+    if "overtime" in raw_df.columns
+    else []
+)
+if overtime_opts:
+    selected_ot = st.sidebar.multiselect(
+        "Overtime", overtime_opts, default=overtime_opts
+    )
+else:
+    selected_ot = []
 
-risks = raw_df["risk_category"].unique().tolist()
+risks = raw_df["risk_category"].dropna().unique().tolist()
 selected_risk = st.sidebar.multiselect("Risk Level", risks, default=risks)
 
 # Apply filters
 df = raw_df[
     (raw_df["department"].isin(selected_deps))
-    & (raw_df["gender"].isin(selected_gender))
-    & (raw_df["marital_status"].isin(selected_marital))
-    & (raw_df["overtime"].isin(selected_ot))
     & (raw_df["risk_category"].isin(selected_risk))
 ]
+
+if genders and "gender" in df.columns:
+    df = df[df["gender"].isin(selected_gender)]
+if marital and "marital_status" in df.columns:
+    df = df[df["marital_status"].isin(selected_marital)]
+if overtime_opts and "overtime" in df.columns:
+    df = df[df["overtime"].isin(selected_ot)]
 
 if travel:
     df = df[df["business_travel"].isin(selected_travel)]
@@ -161,7 +177,11 @@ lowest_risk_dep = (
 )
 
 today = datetime.now().date()
-preds_today = len(df[df["prediction_date"].dt.date == today])
+preds_today = (
+    len(df[df["prediction_date"].dt.date == today])
+    if "prediction_date" in df.columns
+    else 0
+)
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -190,39 +210,46 @@ st.markdown("---")
 # ==========================================
 st.subheader("🏢 Department Overview")
 
-dept_summary = (
-    df.groupby("department")
-    .agg(
-        Employees=("id", "count"),
-        Average_Risk=("prediction_probability", lambda x: x.mean() * 100),
-        High_Risk_Count=("risk_category", lambda x: (x == "High").sum()),
-        Average_Salary=("monthly_income", "mean"),
-        Avg_Job_Sat=("job_satisfaction", "mean"),
-        Avg_Env_Sat=("environment_satisfaction", "mean"),
-        Avg_WLB=("work_life_balance", "mean"),
-        Total_Replacement_Cost=("replacement_cost", "sum"),
-    )
-    .reset_index()
-)
+# Build dynamic aggregation dict
+agg_dict = {
+    "Employees": ("id" if "id" in df.columns else "department", "count"),
+    "Average_Risk": ("prediction_probability", lambda x: x.mean() * 100),
+    "High_Risk_Count": ("risk_category", lambda x: (x == "High").sum()),
+}
+
+if "monthly_income" in df.columns:
+    agg_dict["Average_Salary"] = ("monthly_income", "mean")
+if "job_satisfaction" in df.columns:
+    agg_dict["Avg_Job_Sat"] = ("job_satisfaction", "mean")
+if "environment_satisfaction" in df.columns:
+    agg_dict["Avg_Env_Sat"] = ("environment_satisfaction", "mean")
+if "work_life_balance" in df.columns:
+    agg_dict["Avg_WLB"] = ("work_life_balance", "mean")
+if "replacement_cost" in df.columns:
+    agg_dict["Total_Replacement_Cost"] = ("replacement_cost", "sum")
+
+dept_summary = df.groupby("department").agg(**agg_dict).reset_index()
 
 dept_summary["Employee Distribution %"] = (
     dept_summary["Employees"] / total_emp * 100
 ).round(1)
 dept_summary = dept_summary.sort_values("Average_Risk", ascending=False).round(2)
 
+rename_cols = {
+    "department": "Department",
+    "Average_Risk": "Avg Risk (%)",
+    "High_Risk_Count": "High Risk Emp",
+    "Average_Salary": "Avg Salary (₹)",
+    "Avg_Job_Sat": "Job Sat (1-4)",
+    "Avg_Env_Sat": "Env Sat (1-4)",
+    "Avg_WLB": "Work-Life (1-4)",
+    "Total_Replacement_Cost": "Replacement Cost (₹)",
+    "Employee Distribution %": "Emp Dist (%)",
+}
+
 st.dataframe(
     dept_summary.rename(
-        columns={
-            "department": "Department",
-            "Average_Risk": "Avg Risk (%)",
-            "High_Risk_Count": "High Risk Emp",
-            "Average_Salary": "Avg Salary (₹)",
-            "Avg_Job_Sat": "Job Sat (1-4)",
-            "Avg_Env_Sat": "Env Sat (1-4)",
-            "Avg_WLB": "Work-Life (1-4)",
-            "Total_Replacement_Cost": "Replacement Cost (₹)",
-            "Employee Distribution %": "Emp Dist (%)",
-        }
+        columns={k: v for k, v in rename_cols.items() if k in dept_summary.columns}
     ),
     width="stretch",
     hide_index=True,
@@ -298,74 +325,96 @@ with tab1:
         st.plotly_chart(fig_bar, width="stretch")
     with v_col2:
         # Department Satisfaction Heatmap
-        heat_data = dept_summary[
-            ["department", "Avg_Job_Sat", "Avg_Env_Sat", "Avg_WLB"]
-        ].set_index("department")
-        fig_heat = px.imshow(
-            heat_data.T,
-            text_auto=True,
-            aspect="auto",
-            color_continuous_scale="Blues",
-            title="Satisfaction Metrics by Dept (1-4)",
-        )
-        st.plotly_chart(fig_heat, width="stretch")
+        sat_cols = [
+            c
+            for c in ["Avg_Job_Sat", "Avg_Env_Sat", "Avg_WLB"]
+            if c in dept_summary.columns
+        ]
+        if sat_cols:
+            heat_data = dept_summary[["department"] + sat_cols].set_index("department")
+            fig_heat = px.imshow(
+                heat_data.T,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale="Blues",
+                title="Satisfaction Metrics by Dept (1-4)",
+            )
+            st.plotly_chart(fig_heat, width="stretch")
+        else:
+            st.warning("Satisfaction heatmap skipped (missing columns).")
 
 with tab2:
     c_col1, c_col2 = st.columns(2)
     with c_col1:
         # Salary vs Risk Scatter
-        fig_scatter = px.scatter(
-            df,
-            x="monthly_income",
-            y="prediction_probability",
-            color="risk_category",
-            color_discrete_map=color_map,
-            title="Monthly Income vs Attrition Probability",
-            hover_data=["department"],
-        )
-        st.plotly_chart(fig_scatter, width="stretch")
+        if "monthly_income" in df.columns:
+            fig_scatter = px.scatter(
+                df,
+                x="monthly_income",
+                y="prediction_probability",
+                color="risk_category",
+                color_discrete_map=color_map,
+                title="Monthly Income vs Attrition Probability",
+                hover_data=["department"],
+            )
+            st.plotly_chart(fig_scatter, width="stretch")
+        else:
+            st.warning("Income scatter skipped (monthly_income missing).")
     with c_col2:
         # Overtime vs Risk Stacked Bar
-        ot_risk = (
-            df.groupby(["overtime", "risk_category"]).size().reset_index(name="Count")
-        )
-        fig_ot = px.bar(
-            ot_risk,
-            x="overtime",
-            y="Count",
-            color="risk_category",
-            color_discrete_map=color_map,
-            title="Overtime vs Attrition Risk",
-            barmode="stack",
-        )
-        st.plotly_chart(fig_ot, width="stretch")
+        if "overtime" in df.columns:
+            ot_risk = (
+                df.groupby(["overtime", "risk_category"])
+                .size()
+                .reset_index(name="Count")
+            )
+            fig_ot = px.bar(
+                ot_risk,
+                x="overtime",
+                y="Count",
+                color="risk_category",
+                color_discrete_map=color_map,
+                title="Overtime vs Attrition Risk",
+                barmode="stack",
+            )
+            st.plotly_chart(fig_ot, width="stretch")
+        else:
+            st.warning("Overtime risk bar skipped (overtime missing).")
 
 with tab3:
     t_col1, t_col2 = st.columns(2)
     with t_col1:
         # Monthly Trend
-        df["Month"] = df["prediction_date"].dt.to_period("M").astype(str)
-        trend = df.groupby("Month").size().reset_index(name="Predictions")
-        fig_trend = px.line(
-            trend,
-            x="Month",
-            y="Predictions",
-            markers=True,
-            title="Monthly Prediction Trend",
-        )
-        st.plotly_chart(fig_trend, width="stretch")
+        if "prediction_date" in df.columns:
+            df["Month"] = (
+                pd.to_datetime(df["prediction_date"]).dt.to_period("M").astype(str)
+            )
+            trend = df.groupby("Month").size().reset_index(name="Predictions")
+            fig_trend = px.line(
+                trend,
+                x="Month",
+                y="Predictions",
+                markers=True,
+                title="Monthly Prediction Trend",
+            )
+            st.plotly_chart(fig_trend, width="stretch")
+        else:
+            st.warning("Prediction trend skipped (prediction_date missing).")
     with t_col2:
         # Department Replacement Cost
-        fig_cost = px.bar(
-            dept_summary,
-            x="Total_Replacement_Cost",
-            y="department",
-            orientation="h",
-            title="Total Replacement Cost Exposure by Dept (₹)",
-            color="Total_Replacement_Cost",
-            color_continuous_scale="Reds",
-        )
-        st.plotly_chart(fig_cost, width="stretch")
+        if "Total_Replacement_Cost" in dept_summary.columns:
+            fig_cost = px.bar(
+                dept_summary,
+                x="Total_Replacement_Cost",
+                y="department",
+                orientation="h",
+                title="Total Replacement Cost Exposure by Dept (₹)",
+                color="Total_Replacement_Cost",
+                color_continuous_scale="Reds",
+            )
+            st.plotly_chart(fig_cost, width="stretch")
+        else:
+            st.warning("Replacement cost exposure skipped (replacement_cost missing).")
 
 # Top 10 High Risk
 st.markdown("#### 🚨 Top Risk Employees")
@@ -374,7 +423,11 @@ high_risk_df = df[df["risk_category"] == "High"].sort_values(
 )
 if not high_risk_df.empty:
     high_risk_table = high_risk_df[
-        ["id", "department", "prediction_probability", "replacement_cost"]
+        [
+            c
+            for c in ["id", "department", "prediction_probability", "replacement_cost"]
+            if c in high_risk_df.columns
+        ]
     ].copy()
     high_risk_table["Risk %"] = (high_risk_table["prediction_probability"] * 100).round(
         1
@@ -384,8 +437,9 @@ if not high_risk_df.empty:
     high_risk_table["Priority Badge"] = "🚨 Immediate"
 
     # Reorder columns
-    high_risk_table = high_risk_table[
-        [
+    display_cols = [
+        c
+        for c in [
             "Rank",
             "id",
             "department",
@@ -394,7 +448,10 @@ if not high_risk_df.empty:
             "replacement_cost",
             "Priority Badge",
         ]
-    ].rename(
+        if c in high_risk_table.columns
+    ]
+
+    high_risk_table = high_risk_table[display_cols].rename(
         columns={
             "id": "Database ID",
             "department": "Department",
@@ -420,12 +477,16 @@ b_col1, b_col2 = st.columns([1, 2])
 with b_col1:
     # Calculate Business Impact
     high_risk_exposure = (
-        high_risk_df["replacement_cost"].sum() if not high_risk_df.empty else 0
+        high_risk_df["replacement_cost"].sum()
+        if not high_risk_df.empty and "replacement_cost" in high_risk_df.columns
+        else 0
     )
-    total_workforce_value = df["replacement_cost"].sum()
+    total_workforce_value = (
+        df["replacement_cost"].sum() if "replacement_cost" in df.columns else 0
+    )
     highest_cost_dept = (
         dept_summary.sort_values("Total_Replacement_Cost", ascending=False).iloc[0]
-        if not dept_summary.empty
+        if not dept_summary.empty and "Total_Replacement_Cost" in dept_summary.columns
         else None
     )
 
@@ -466,17 +527,24 @@ with b_col2:
                 )
 
         # Check overtime correlation
-        ot_high = len(df[(df["overtime"] == "Yes") & (df["risk_category"] == "High")])
-        non_ot_high = len(
-            df[(df["overtime"] == "No") & (df["risk_category"] == "High")]
-        )
-        if ot_high > non_ot_high:
-            insights.append(
-                "Elevated overtime levels strongly correlate with high attrition profiles in the current population."
+        if "overtime" in df.columns:
+            ot_high = len(
+                df[(df["overtime"] == "Yes") & (df["risk_category"] == "High")]
             )
+            non_ot_high = len(
+                df[(df["overtime"] == "No") & (df["risk_category"] == "High")]
+            )
+            if ot_high > non_ot_high:
+                insights.append(
+                    "Elevated overtime levels strongly correlate with high attrition profiles in the current population."
+                )
 
         # Check WLB using static terminology
-        if not dept_summary.empty and len(departments) > 1:
+        if (
+            not dept_summary.empty
+            and len(departments) > 1
+            and "Avg_WLB" in dept_summary.columns
+        ):
             lowest_wlb = dept_summary.sort_values("Avg_WLB").iloc[0]
             if lowest_wlb["Avg_WLB"] < 2.5:
                 insights.append(

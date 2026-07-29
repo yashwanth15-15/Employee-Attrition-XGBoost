@@ -1,5 +1,4 @@
 import os
-
 # Import database function
 import sys
 from datetime import datetime
@@ -16,9 +15,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
-
 # For PDF export
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (Paragraph, SimpleDocTemplate, Spacer, Table,
+                                TableStyle)
 
 st.set_page_config(page_title="Retention Cost Planning", layout="wide", page_icon="💰")
 
@@ -38,27 +37,22 @@ st.markdown(
 def load_data():
     df = get_predictions()
     if not df.empty:
-        # Define defaults for numeric optional columns
-        numeric_defaults = {
-            "prediction_probability": 0.0,
-            "monthly_income": 0.0,
-            "replacement_cost": 0.0,
-            "job_satisfaction": 3.0,
-            "work_life_balance": 3.0,
-        }
-        for col, default in numeric_defaults.items():
-            if col not in df.columns:
-                df[col] = default
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(default)
+        # Coerce numeric columns if they exist
+        numeric_columns = [
+            "prediction_probability",
+            "monthly_income",
+            "replacement_cost",
+            "job_satisfaction",
+            "work_life_balance",
+        ]
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        if "prediction_date" not in df.columns:
-            df["prediction_date"] = pd.Timestamp.now()
-        df["prediction_date"] = pd.to_datetime(df["prediction_date"], errors="coerce")
-
-        # String/Categorical fallbacks
-        for col in ["department", "risk_category", "overtime"]:
-            if col not in df.columns:
-                df[col] = "Unknown" if col != "overtime" else "No"
+        if "prediction_date" in df.columns:
+            df["prediction_date"] = pd.to_datetime(
+                df["prediction_date"], errors="coerce"
+            )
     return df
 
 
@@ -67,6 +61,13 @@ df = load_data()
 if df.empty:
     st.info(
         "ℹ️ No historical data available. Generate employee predictions to unlock financial analytics."
+    )
+    st.stop()
+
+# Ensure minimal columns exist
+if "risk_category" not in df.columns or "replacement_cost" not in df.columns:
+    st.warning(
+        "Required columns (risk_category, replacement_cost) are missing. Analytics cannot be generated."
     )
     st.stop()
 
@@ -190,39 +191,52 @@ if high_risk_count > 0:
     v1, v2 = st.columns(2)
     with v1:
         # Replacement Cost by Department
-        fig_bar = px.bar(
-            dept_costs,
-            x="department",
-            y="replacement_cost",
-            color="replacement_cost",
-            color_continuous_scale="Reds",
-            title="Total Financial Exposure by Department",
-        )
-        fig_bar.update_layout(
-            yaxis_title="Replacement Cost (₹)", xaxis_title="Department"
-        )
-        st.plotly_chart(fig_bar, width="stretch")
+        if "department" in df.columns:
+            fig_bar = px.bar(
+                dept_costs,
+                x="department",
+                y="replacement_cost",
+                color="replacement_cost",
+                color_continuous_scale="Reds",
+                title="Total Financial Exposure by Department",
+            )
+            fig_bar.update_layout(
+                yaxis_title="Replacement Cost (₹)", xaxis_title="Department"
+            )
+            st.plotly_chart(fig_bar, width="stretch")
+        else:
+            st.warning(
+                "Replacement Cost by Department chart skipped (department missing)."
+            )
 
     with v2:
         # Cost vs Risk Bubble Chart
-        fig_bubble = px.scatter(
-            df,
-            x="prediction_probability",
-            y="replacement_cost",
-            size="monthly_income",
-            color="risk_category",
-            hover_name="department",
-            color_discrete_map={
-                "High": "salmon",
-                "Medium": "gold",
-                "Low": "lightgreen",
-            },
-            title="Cost vs Risk (Bubble Size = Income)",
-        )
-        fig_bubble.update_layout(
-            xaxis_title="Attrition Risk Probability", yaxis_title="Replacement Cost (₹)"
-        )
-        st.plotly_chart(fig_bubble, width="stretch")
+        if (
+            "prediction_probability" in df.columns
+            and "monthly_income" in df.columns
+            and "department" in df.columns
+        ):
+            fig_bubble = px.scatter(
+                df,
+                x="prediction_probability",
+                y="replacement_cost",
+                size="monthly_income",
+                color="risk_category",
+                hover_name="department",
+                color_discrete_map={
+                    "High": "salmon",
+                    "Medium": "gold",
+                    "Low": "lightgreen",
+                },
+                title="Cost vs Risk (Bubble Size = Income)",
+            )
+            fig_bubble.update_layout(
+                xaxis_title="Attrition Risk Probability",
+                yaxis_title="Replacement Cost (₹)",
+            )
+            st.plotly_chart(fig_bubble, width="stretch")
+        else:
+            st.warning("Cost vs Risk bubble chart skipped (missing required columns).")
 
     v3, v4 = st.columns(2)
     with v3:
@@ -286,41 +300,49 @@ if high_risk_count > 0:
 # ==========================================
 st.subheader("🏆 Retention Priority Matrix")
 
-dept_metrics = (
-    df.groupby("department")
-    .agg(
-        Employee_Count=("id", "count"),
-        Financial_Risk=(
-            "replacement_cost",
-            lambda x: x[df.loc[x.index, "risk_category"] == "High"].sum(),
-        ),
-        High_Risk_Count=("risk_category", lambda x: (x == "High").sum()),
-        Avg_Risk=("prediction_probability", "mean"),
+if "department" in df.columns and "prediction_probability" in df.columns:
+    dept_metrics = (
+        df.groupby("department")
+        .agg(
+            Employee_Count=(
+                ("id", "count") if "id" in df.columns else ("replacement_cost", "count")
+            ),
+            Financial_Risk=(
+                "replacement_cost",
+                lambda x: x[df.loc[x.index, "risk_category"] == "High"].sum(),
+            ),
+            High_Risk_Count=("risk_category", lambda x: (x == "High").sum()),
+            Avg_Risk=("prediction_probability", "mean"),
+        )
+        .reset_index()
     )
-    .reset_index()
-)
 
-dept_metrics["Retention_Priority"] = (
-    dept_metrics["Financial_Risk"].rank(ascending=False, method="min").astype(int)
-)
-dept_metrics = dept_metrics.sort_values("Retention_Priority")
+    dept_metrics["Retention_Priority"] = (
+        dept_metrics["Financial_Risk"].rank(ascending=False, method="min").astype(int)
+    )
+    dept_metrics = dept_metrics.sort_values("Retention_Priority")
 
-st.dataframe(
-    dept_metrics.rename(
-        columns={
-            "department": "Department",
-            "Employee_Count": "Total Headcount",
-            "Financial_Risk": "Financial Risk (₹)",
-            "High_Risk_Count": "High Risk Count",
-            "Avg_Risk": "Avg Risk Probability",
-            "Retention_Priority": "Priority Rank",
-        }
-    ).style.format(
-        {"Financial Risk (₹)": "₹{:,.2f}", "Avg Risk Probability": "{:.2%}"}
-    ),
-    width="stretch",
-    hide_index=True,
-)
+    st.dataframe(
+        dept_metrics.rename(
+            columns={
+                "department": "Department",
+                "Employee_Count": "Total Headcount",
+                "Financial_Risk": "Financial Risk (₹)",
+                "High_Risk_Count": "High Risk Count",
+                "Avg_Risk": "Avg Risk Probability",
+                "Retention_Priority": "Priority Rank",
+            }
+        ).style.format(
+            {"Financial Risk (₹)": "₹{:,.2f}", "Avg Risk Probability": "{:.2%}"}
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+else:
+    dept_metrics = pd.DataFrame()
+    st.warning(
+        "Retention Priority Matrix skipped (department or prediction_probability missing)."
+    )
 
 st.markdown("---")
 
@@ -360,12 +382,15 @@ with b_col1:
                         f"**{top_dept['department']}** is the highest priority department, contributing **₹{top_dept['Financial_Risk']:,.2f}** to projected attrition costs."
                     )
 
-            ot_high = df[(df["overtime"] == "Yes") & (df["risk_category"] == "High")]
-            if not ot_high.empty:
-                ot_cost = ot_high["replacement_cost"].sum()
-                insights.append(
-                    f"Reducing overtime for high-risk profiles could intercept up to **₹{ot_cost:,.2f}** in attrition exposure."
-                )
+            if "overtime" in df.columns:
+                ot_high = df[
+                    (df["overtime"] == "Yes") & (df["risk_category"] == "High")
+                ]
+                if not ot_high.empty:
+                    ot_cost = ot_high["replacement_cost"].sum()
+                    insights.append(
+                        f"Reducing overtime for high-risk profiles could intercept up to **₹{ot_cost:,.2f}** in attrition exposure."
+                    )
 
             insights.append(
                 f"An intervention achieving a {success_rate}% success rate will save approximately **₹{savings:,.2f}** annually."
