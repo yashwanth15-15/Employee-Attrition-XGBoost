@@ -1,16 +1,10 @@
-from io import BytesIO
 from datetime import datetime
+from io import BytesIO
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 def generate_pdf(
@@ -71,8 +65,7 @@ def generate_pdf(
 
     story.append(
         Paragraph(
-            f"<b>Generated On:</b> "
-            f"{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
+            f"<b>Generated On:</b> " f"{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
             normal_style,
         )
     )
@@ -161,7 +154,7 @@ def generate_pdf(
             normal_style,
         )
     )
-        
+
     story.append(Spacer(1, 20))
 
     # =====================================================
@@ -176,8 +169,7 @@ def generate_pdf(
     )
 
     analysis = (
-        analysis
-        .replace("###", "")
+        analysis.replace("###", "")
         .replace("##", "")
         .replace("#", "")
         .replace("**", "")
@@ -186,17 +178,14 @@ def generate_pdf(
         .strip()
     )
 
-
     for line in analysis.split("\n"):
 
         line = line.strip()
 
         if line:
-            story.append(
-                Paragraph(line, normal_style)
-            )
+            story.append(Paragraph(line, normal_style))
 
-            story.append(Spacer(1,6))
+            story.append(Spacer(1, 6))
 
     story.append(Spacer(1, 20))
 

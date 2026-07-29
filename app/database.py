@@ -1,6 +1,6 @@
 import sqlite3
+
 import pandas as pd
-from datetime import datetime
 
 DATABASE = "employee_predictions.db"
 
@@ -31,15 +31,15 @@ def create_table():
     """Create the predictions table with the latest schema if it does not exist."""
     conn = get_connection()
     cursor = conn.cursor()
-    columns_def = ",\n            ".join([f"{col} {ctype}" for col, ctype in EXPECTED_COLUMNS.items()])
-    cursor.execute(
-        f"""
+    columns_def = ",\n            ".join(
+        [f"{col} {ctype}" for col, ctype in EXPECTED_COLUMNS.items()]
+    )
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             {columns_def}
         )
-        """
-    )
+        """)
     conn.commit()
     conn.close()
 
@@ -55,7 +55,7 @@ def ensure_schema():
     # Retrieve existing column names
     cursor.execute("PRAGMA table_info(predictions)")
     existing = {row[1] for row in cursor.fetchall()}
-    
+
     for col, col_type in EXPECTED_COLUMNS.items():
         if col not in existing:
             cursor.execute(f"ALTER TABLE predictions ADD COLUMN {col} {col_type}")
@@ -67,14 +67,17 @@ def add_prediction(record: dict):
     """Insert a prediction record into the database."""
     # Validate columns
     for key in record:
-        if key not in EXPECTED_COLUMNS and key != 'id':
+        if key not in EXPECTED_COLUMNS and key != "id":
             raise ValueError(f"Unknown column '{key}' provided in prediction record.")
 
     conn = get_connection()
     cursor = conn.cursor()
-    columns = ', '.join(record.keys())
-    placeholders = ', '.join(['?'] * len(record))
-    cursor.execute(f"INSERT INTO predictions ({columns}) VALUES ({placeholders})", tuple(record.values()))
+    columns = ", ".join(record.keys())
+    placeholders = ", ".join(["?"] * len(record))
+    cursor.execute(
+        f"INSERT INTO predictions ({columns}) VALUES ({placeholders})",
+        tuple(record.values()),
+    )
     pred_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -91,26 +94,26 @@ def get_predictions(filters: dict = None) -> pd.DataFrame:
     params = []
     conditions = []
     if filters:
-        if filters.get('department'):
-            placeholders = ','.join(['?'] * len(filters['department']))
+        if filters.get("department"):
+            placeholders = ",".join(["?"] * len(filters["department"]))
             conditions.append(f"department IN ({placeholders})")
-            params.extend(filters['department'])
-        if filters.get('risk_category'):
-            placeholders = ','.join(['?'] * len(filters['risk_category']))
+            params.extend(filters["department"])
+        if filters.get("risk_category"):
+            placeholders = ",".join(["?"] * len(filters["risk_category"]))
             conditions.append(f"risk_category IN ({placeholders})")
-            params.extend(filters['risk_category'])
-        if filters.get('start_date'):
+            params.extend(filters["risk_category"])
+        if filters.get("start_date"):
             conditions.append("date(prediction_date) >= date(?)")
-            params.append(filters['start_date'])
-        if filters.get('end_date'):
+            params.append(filters["start_date"])
+        if filters.get("end_date"):
             conditions.append("date(prediction_date) <= date(?)")
-            params.append(filters['end_date'])
-        if filters.get('min_age') is not None:
+            params.append(filters["end_date"])
+        if filters.get("min_age") is not None:
             conditions.append("age >= ?")
-            params.append(filters['min_age'])
-        if filters.get('max_age') is not None:
+            params.append(filters["min_age"])
+        if filters.get("max_age") is not None:
             conditions.append("age <= ?")
-            params.append(filters['max_age'])
+            params.append(filters["max_age"])
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
     cursor.execute(query, tuple(params))
@@ -126,7 +129,7 @@ def delete_predictions(ids: list):
         return
     conn = get_connection()
     cursor = conn.cursor()
-    placeholders = ','.join(['?'] * len(ids))
+    placeholders = ",".join(["?"] * len(ids))
     cursor.execute(f"DELETE FROM predictions WHERE id IN ({placeholders})", tuple(ids))
     conn.commit()
     conn.close()

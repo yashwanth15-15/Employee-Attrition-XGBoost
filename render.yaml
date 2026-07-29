@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: hr-analytics-backend
+    env: docker
+    dockerfilePath: ./backend.Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_ORIGINS
+        value: "https://your-frontend-url.streamlit.app"
+      - key: DATABASE_PATH
+        value: "/app/data/employee_predictions.db"
+    # Note: On Render's Free Tier, the local SQLite database will be reset on every deploy.
+    # For persistent storage, configure a PostgreSQL database and update DATABASE_PATH.

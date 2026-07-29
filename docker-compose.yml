@@ -5,22 +5,51 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
+    container_name: hr_analytics_backend
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
     environment:
-      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - ALLOWED_ORIGINS=http://localhost:8501,http://frontend:8501
+      - DATABASE_PATH=/app/data/employee_predictions.db
+    volumes:
+      # Named volume to persist SQLite database across container restarts
+      - db_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
 
   frontend:
     build:
       context: .
       dockerfile: frontend.Dockerfile
+    container_name: hr_analytics_frontend
     ports:
       - "8501:8501"
-    volumes:
-      - .:/app
     environment:
-      - PYTHONPATH=/app
+      - API_BASE_URL=http://backend:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+    name: hr_db_persistence
+
+networks:
+  app-network:
+    driver: bridge

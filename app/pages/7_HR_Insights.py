@@ -1,8 +1,9 @@
-import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit as st
 
 st.title("👥 HR Insights & Recommendations")
+
 
 # ==================================================
 # LOAD DATASET
@@ -14,10 +15,13 @@ def load_data():
     except FileNotFoundError:
         return None
 
+
 df = load_data()
 
 if df is None:
-    st.error("❌ Dataset not found! Please ensure 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv' exists.")
+    st.error(
+        "❌ Dataset not found! Please ensure 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv' exists."
+    )
     st.stop()
 
 # ==================================================
@@ -26,33 +30,20 @@ if df is None:
 
 total_employees = len(df)
 
-attrition_cases = (
-    df["Attrition"] == "Yes"
-).sum()
+attrition_cases = (df["Attrition"] == "Yes").sum()
 
-attrition_rate = (
-    attrition_cases / total_employees
-) * 100
+attrition_rate = (attrition_cases / total_employees) * 100
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(
-        "Total Employees",
-        total_employees
-    )
+    st.metric("Total Employees", total_employees)
 
 with col2:
-    st.metric(
-        "Attrition Cases",
-        attrition_cases
-    )
+    st.metric("Attrition Cases", attrition_cases)
 
 with col3:
-    st.metric(
-        "Attrition Rate",
-        f"{attrition_rate:.2f}%"
-    )
+    st.metric("Attrition Rate", f"{attrition_rate:.2f}%")
 
 st.markdown("---")
 
@@ -60,14 +51,12 @@ st.markdown("---")
 # OVERVIEW
 # ==================================================
 
-st.info(
-    """
+st.info("""
     HR Insights are generated from the employee attrition dataset
     to help organizations understand workforce challenges,
     improve retention strategies, and support data-driven
     Human Resource decision-making.
-    """
-)
+    """)
 
 # ==================================================
 # ATTRITION DISTRIBUTION
@@ -75,25 +64,21 @@ st.info(
 
 st.subheader("📈 Employee Attrition Distribution")
 
-attrition_df = pd.DataFrame({
-    "Status": ["Stayed", "Left"],
-    "Count": [
-        (df["Attrition"] == "No").sum(),
-        (df["Attrition"] == "Yes").sum()
-    ]
-})
+attrition_df = pd.DataFrame(
+    {
+        "Status": ["Stayed", "Left"],
+        "Count": [(df["Attrition"] == "No").sum(), (df["Attrition"] == "Yes").sum()],
+    }
+)
 
 fig = px.pie(
     attrition_df,
     names="Status",
     values="Count",
-    title="Employee Attrition Distribution"
+    title="Employee Attrition Distribution",
 )
 
-st.plotly_chart(
-    fig,
-    width="stretch"
-)
+st.plotly_chart(fig, width="stretch")
 
 # ==================================================
 # KEY HR INSIGHTS
@@ -101,8 +86,7 @@ st.plotly_chart(
 
 st.subheader("📊 Key HR Insights")
 
-st.success(
-    """
+st.success("""
     • Employees working overtime are more likely to leave.
 
     • Low job satisfaction increases attrition risk.
@@ -118,8 +102,7 @@ st.success(
     • Career growth opportunities influence employee retention.
 
     • Employee engagement significantly affects workforce stability.
-    """
-)
+    """)
 
 # ==================================================
 # ATTRITION DRIVERS
@@ -127,25 +110,24 @@ st.success(
 
 st.subheader("⚠️ Major Attrition Drivers")
 
-drivers_df = pd.DataFrame({
-    "Top Attrition Drivers": [
-        "OverTime",
-        "StockOptionLevel",
-        "TotalWorkingYears",
-        "JobInvolvement",
-        "MonthlyIncome",
-        "JobLevel",
-        "Age",
-        "NumCompaniesWorked",
-        "MaritalStatus",
-        "YearsAtCompany"
-    ]
-})
-
-st.dataframe(
-    drivers_df,
-    width="stretch"
+drivers_df = pd.DataFrame(
+    {
+        "Top Attrition Drivers": [
+            "OverTime",
+            "StockOptionLevel",
+            "TotalWorkingYears",
+            "JobInvolvement",
+            "MonthlyIncome",
+            "JobLevel",
+            "Age",
+            "NumCompaniesWorked",
+            "MaritalStatus",
+            "YearsAtCompany",
+        ]
+    }
 )
+
+st.dataframe(drivers_df, width="stretch")
 
 # ==================================================
 # HR RECOMMENDATIONS
@@ -153,8 +135,7 @@ st.dataframe(
 
 st.subheader("🎯 HR Recommendations")
 
-st.info(
-    """
+st.info("""
     ✅ Reduce excessive employee overtime
 
     ✅ Improve employee engagement programs
@@ -174,8 +155,7 @@ st.info(
     ✅ Increase employee training opportunities
 
     ✅ Develop retention strategies for high-risk employees
-    """
-)
+    """)
 
 # ==================================================
 # RETENTION STRATEGY MATRIX
@@ -183,23 +163,18 @@ st.info(
 
 st.subheader("📋 Retention Strategy Matrix")
 
-strategy_df = pd.DataFrame({
-    "Risk Level": [
-        "🟢 Low Risk",
-        "🟡 Medium Risk",
-        "🔴 High Risk"
-    ],
-    "Recommended HR Action": [
-        "Routine Monitoring",
-        "Manager Discussion & Engagement",
-        "Immediate Retention Plan"
-    ]
-})
-
-st.dataframe(
-    strategy_df,
-    width="stretch"
+strategy_df = pd.DataFrame(
+    {
+        "Risk Level": ["🟢 Low Risk", "🟡 Medium Risk", "🔴 High Risk"],
+        "Recommended HR Action": [
+            "Routine Monitoring",
+            "Manager Discussion & Engagement",
+            "Immediate Retention Plan",
+        ],
+    }
 )
+
+st.dataframe(strategy_df, width="stretch")
 
 # ==================================================
 # BUSINESS IMPACT
@@ -207,8 +182,7 @@ st.dataframe(
 
 st.subheader("💼 Business Impact")
 
-st.success(
-    """
+st.success("""
     • Reduce employee turnover costs
 
     • Improve workforce stability
@@ -224,8 +198,7 @@ st.success(
     • Improve organizational productivity
 
     • Enable data-driven HR decision making
-    """
-)
+    """)
 
 # ==================================================
 # WORKFORCE HEALTH SCORE
@@ -235,13 +208,9 @@ st.subheader("📊 Workforce Health Assessment")
 
 health_score = 84
 
-st.progress(
-    health_score / 100
-)
+st.progress(health_score / 100)
 
-st.success(
-    f"Overall Workforce Health Score: {health_score}/100"
-)
+st.success(f"Overall Workforce Health Score: {health_score}/100")
 
 # ==================================================
 # FOOTER
@@ -249,6 +218,4 @@ st.success(
 
 st.markdown("---")
 
-st.caption(
-    "Employee Attrition Prediction System | HR Insights & Recommendations"
-)
+st.caption("Employee Attrition Prediction System | HR Insights & Recommendations")

@@ -1,8 +1,9 @@
-import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit as st
 
 st.title("📊 Dataset Overview")
+
 
 # Load Dataset
 @st.cache_data
@@ -12,10 +13,13 @@ def load_data():
     except FileNotFoundError:
         return None
 
+
 df = load_data()
 
 if df is None:
-    st.error("❌ Dataset not found! Please ensure 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv' exists.")
+    st.error(
+        "❌ Dataset not found! Please ensure 'data/WA_Fn-UseC_-HR-Employee-Attrition.csv' exists."
+    )
     st.stop()
 
 # ==========================
@@ -25,22 +29,13 @@ if df is None:
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(
-        "Employees",
-        df.shape[0]
-    )
+    st.metric("Employees", df.shape[0])
 
 with col2:
-    st.metric(
-        "Features",
-        df.shape[1]
-    )
+    st.metric("Features", df.shape[1])
 
 with col3:
-    st.metric(
-        "Attrition Cases",
-        (df["Attrition"] == "Yes").sum()
-    )
+    st.metric("Attrition Cases", (df["Attrition"] == "Yes").sum())
 
 st.markdown("---")
 
@@ -50,10 +45,7 @@ st.markdown("---")
 
 st.subheader("📄 Dataset Preview")
 
-st.dataframe(
-    df.head(),
-    width="stretch"
-)
+st.dataframe(df.head(), width="stretch")
 
 # ==========================
 # DATA QUALITY
@@ -64,16 +56,10 @@ st.subheader("🔍 Data Quality")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.metric(
-        "Missing Values",
-        int(df.isnull().sum().sum())
-    )
+    st.metric("Missing Values", int(df.isnull().sum().sum()))
 
 with col2:
-    st.metric(
-        "Duplicate Records",
-        int(df.duplicated().sum())
-    )
+    st.metric("Duplicate Records", int(df.duplicated().sum()))
 
 st.markdown("---")
 
@@ -100,43 +86,28 @@ Total Features: 35
 st.subheader("📈 Statistical Summary")
 
 with st.expander("View Statistical Summary"):
-    st.dataframe(
-        df.describe(),
-        width="stretch"
-    )
+    st.dataframe(df.describe(), width="stretch")
 # ==========================
 # ATTRITION DISTRIBUTION
 # ==========================
 
 st.subheader("🎯 Attrition Distribution")
 
-attrition_counts = (
-    df["Attrition"]
-    .value_counts()
-    .reset_index()
-)
+attrition_counts = df["Attrition"].value_counts().reset_index()
 
-attrition_counts.columns = [
-    "Attrition",
-    "Count"
-]
+attrition_counts.columns = ["Attrition", "Count"]
 
 fig = px.bar(
     attrition_counts,
     x="Attrition",
     y="Count",
     text="Count",
-    title="Employee Attrition Distribution"
+    title="Employee Attrition Distribution",
 )
 
-fig.update_traces(
-    textposition="outside"
-)
+fig.update_traces(textposition="outside")
 
-st.plotly_chart(
-    fig,
-    width="stretch"
-)
+st.plotly_chart(fig, width="stretch")
 
 # ==========================
 # COLUMN LIST
@@ -153,30 +124,18 @@ with st.expander("View All Dataset Columns"):
 
 st.subheader("🎯 Target Variable Summary")
 
-yes_count = (
-    df["Attrition"] == "Yes"
-).sum()
+yes_count = (df["Attrition"] == "Yes").sum()
 
-no_count = (
-    df["Attrition"] == "No"
-).sum()
+no_count = (df["Attrition"] == "No").sum()
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.metric(
-        "Employees Left",
-        yes_count
-    )
+    st.metric("Employees Left", yes_count)
 
 with col2:
-    st.metric(
-        "Employees Stayed",
-        no_count
-    )
+    st.metric("Employees Stayed", no_count)
 
 st.markdown("---")
 
-st.caption(
-    "IBM HR Analytics Employee Attrition Dataset"
-)
+st.caption("IBM HR Analytics Employee Attrition Dataset")

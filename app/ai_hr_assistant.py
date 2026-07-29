@@ -1,15 +1,15 @@
 import streamlit as st
-from helpers.risk_calculator import calculate_risk
+from utils.risk_calculator import calculate_risk
 
 GEMINI_AVAILABLE = False
 model = None
 
 try:
     import google.generativeai as genai
-    
+
     # Safely get API key
     api_key = st.secrets.get("GEMINI_API_KEY")
-    
+
     if api_key:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-flash")
@@ -82,11 +82,7 @@ Rules:
 
         response = model.generate_content(prompt)
 
-        if (
-            response
-            and hasattr(response, "text")
-            and response.text
-        ):
+        if response and hasattr(response, "text") and response.text:
             return response.text
 
         return None

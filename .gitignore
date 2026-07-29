@@ -1,3 +1,32 @@
-.streamlit/secrets.toml
+# Environments
+venv/
+.env
+
+# Cache
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Databases
+*.db
+*.sqlite
+employee_predictions.db
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/
+
+# Logs
+logs/
+*.log
+
+# Temporary Files
+*.tmp
+*.temp

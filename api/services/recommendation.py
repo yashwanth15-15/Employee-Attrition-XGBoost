@@ -1,6 +1,8 @@
-from typing import Dict, Any
-from App.helpers.hr_recommendation_engine import generate_hr_recommendation
+from typing import Any, Dict
+
 from api.models.schemas import HRRecommendations
+from app.helpers.hr_recommendation_engine import generate_hr_recommendation
+
 
 class RecommendationService:
     @staticmethod
@@ -27,7 +29,8 @@ class RecommendationService:
             "Years In Current Role": features.get("Years In Current Role", 0),
         }
         rec_dict = generate_hr_recommendation(standard_dict, prob, risk)
-        
+
         return HRRecommendations(**rec_dict)
+
 
 recommendation_service = RecommendationService()

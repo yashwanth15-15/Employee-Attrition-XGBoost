@@ -1,1 +1,37 @@
-streamlit==1.55.0pandas==2.3.3numpy==2.4.6scikit-learn==1.8.0xgboost==3.2.0matplotlib==3.10.8seaborn==0.13.2plotly==6.8.0shap==0.51.0joblib==1.5.3openpyxl==3.1.5reportlab==5.0.0google-generativeai>=0.8.5
+# ==========================================
+# Employee Attrition Prediction Platform
+# Production Requirements
+# ==========================================
+
+# --- Backend (FastAPI) ---
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.1
+pydantic>=2.7.4
+pydantic-settings>=2.3.4
+httpx>=0.27.0
+sqlalchemy>=2.0.0
+
+# --- Frontend (Streamlit) ---
+streamlit==1.55.0
+plotly==6.8.0
+
+# --- Machine Learning & Data Processing ---
+pandas==2.3.3
+numpy==2.4.6
+scikit-learn==1.8.0
+xgboost==3.2.0
+shap==0.51.0
+statsmodels>=0.14.0
+imbalanced-learn>=0.12.3
+
+# --- Reporting ---
+reportlab==5.0.0
+openpyxl==3.1.5
+matplotlib>=3.7.0
+
+# --- Utilities ---
+joblib==1.5.3
+google-generativeai>=0.8.5
+
+# --- Development & Testing (Optional for Prod) ---
+pytest>=8.2.2

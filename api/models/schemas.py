@@ -1,27 +1,38 @@
+from typing import Any, Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional, Literal
-from datetime import datetime
+
 
 class EmployeeFeatures(BaseModel):
     Age: int = Field(..., ge=18, le=100)
     Gender: Literal["Male", "Female"] = Field(..., description="Male or Female")
-    Department: Literal["Sales", "Research & Development", "Human Resources"] = Field(..., description="Department name")
+    Department: Literal["Sales", "Research & Development", "Human Resources"] = Field(
+        ..., description="Department name"
+    )
     Monthly_Income: float = Field(..., alias="Monthly Income")
-    Marital_Status: Literal["Single", "Married", "Divorced"] = Field(..., alias="Marital Status")
+    Marital_Status: Literal["Single", "Married", "Divorced"] = Field(
+        ..., alias="Marital Status"
+    )
     OverTime: Literal["Yes", "No"] = Field(..., description="Yes or No")
     Years_At_Company: int = Field(..., alias="Years At Company", ge=0)
     Total_Working_Years: int = Field(..., alias="Total Working Years", ge=0)
     Job_Satisfaction: int = Field(..., alias="Job Satisfaction", ge=1, le=4)
-    Environment_Satisfaction: int = Field(..., alias="Environment Satisfaction", ge=1, le=4)
+    Environment_Satisfaction: int = Field(
+        ..., alias="Environment Satisfaction", ge=1, le=4
+    )
     Work_Life_Balance: int = Field(..., alias="Work Life Balance", ge=1, le=4)
-    Years_Since_Last_Promotion: int = Field(..., alias="Years Since Last Promotion", ge=0)
+    Years_Since_Last_Promotion: int = Field(
+        ..., alias="Years Since Last Promotion", ge=0
+    )
     Training_Times_Last_Year: int = Field(..., alias="Training Times Last Year", ge=0)
-    Business_Travel: Literal["Non-Travel", "Travel_Rarely", "Travel_Frequently"] = Field(..., alias="Business Travel")
+    Business_Travel: Literal["Non-Travel", "Travel_Rarely", "Travel_Frequently"] = (
+        Field(..., alias="Business Travel")
+    )
     Distance_From_Home: int = Field(..., alias="Distance From Home", ge=0)
     Performance_Rating: int = Field(3, alias="Performance Rating", ge=1, le=4)
     Stock_Option_Level: int = Field(0, alias="Stock Option Level", ge=0, le=3)
     Years_In_Current_Role: int = Field(0, alias="Years In Current Role", ge=0)
-    
+
     model_config = {
         "populate_by_name": True,
         "json_schema_extra": {
@@ -43,10 +54,11 @@ class EmployeeFeatures(BaseModel):
                 "Distance From Home": 5,
                 "Performance Rating": 3,
                 "Stock Option Level": 0,
-                "Years In Current Role": 3
+                "Years In Current Role": 3,
             }
-        }
+        },
     }
+
 
 class HRRecommendations(BaseModel):
     priority: str
@@ -57,16 +69,26 @@ class HRRecommendations(BaseModel):
     long_term_strategy: List[str]
     strategies_text: List[str]
 
+
+class RiskDriver(BaseModel):
+    feature: str
+    contribution: float
+    impact: str
+    shap_value: float
+
+
 class PredictionResponse(BaseModel):
     probability: float
     risk_category: str
-    shap_values: Dict[str, float]
+    top_risk_drivers: List[RiskDriver]
     recommendations: HRRecommendations
     prediction_id: Optional[int] = None
+
 
 class SimulationRequest(BaseModel):
     base_features: EmployeeFeatures
     modified_features: Dict[str, Any]
+
 
 class SimulationResponse(BaseModel):
     original_probability: float
