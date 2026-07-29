@@ -124,6 +124,13 @@ app = FastAPI(
     version=settings.VERSION,
     description="Enterprise API for Employee Attrition Prediction System",
     lifespan=lifespan,
+    swagger_ui_init_oauth={
+        "usePkceWithAuthorizationCodeGrant": False,
+        "clientId": "swagger-ui",
+    },
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    },
 )
 
 # CORS Configuration

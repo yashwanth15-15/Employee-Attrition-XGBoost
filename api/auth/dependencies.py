@@ -7,7 +7,9 @@ from api.auth.jwt_handler import verify_access_token
 from api.database.session import get_db
 from api.models.auth_schemas import UserResponse
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+from api.config import settings
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
