@@ -7,10 +7,10 @@ import streamlit as st
 # Add the app directory to sys.path so modules like api_client can be imported from any page
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from api_client import BACKEND_URL
 from database import create_table
 from helpers.metrics_calculator import get_model_metrics
 from logger import logger
-from api_client import BACKEND_URL
 
 create_table()
 

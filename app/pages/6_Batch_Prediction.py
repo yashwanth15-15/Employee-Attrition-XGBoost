@@ -131,6 +131,42 @@ if uploaded_file is not None:
             # Sort by Risk
             df = df.sort_values(by="Attrition_Risk", ascending=False)
 
+            # Save batch predictions to local database
+            import uuid
+            from datetime import datetime
+
+            from database import add_prediction
+
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for _, row in df.iterrows():
+                local_emp_id = str(row.get("EmployeeNumber", str(uuid.uuid4())[:8]))
+                record = {
+                    "prediction_date": now_str,
+                    "employee_id": local_emp_id,
+                    "employee_name": f"Employee_{local_emp_id}",
+                    "age": int(row.get("Age", 30)),
+                    "gender": row.get("Gender", "Unknown"),
+                    "department": row.get("Department", "Unknown"),
+                    "marital_status": row.get("MaritalStatus", "Single"),
+                    "monthly_income": float(row.get("MonthlyIncome", 0)),
+                    "years_at_company": int(row.get("YearsAtCompany", 0)),
+                    "job_satisfaction": int(row.get("JobSatisfaction", 3)),
+                    "work_life_balance": int(row.get("WorkLifeBalance", 3)),
+                    "overtime": row.get("OverTime", "No"),
+                    "prediction_probability": float(row.get("Attrition_Risk", 0))
+                    / 100.0,
+                    "risk_category": row.get("Risk_Level", "Medium"),
+                    "health_score": int(
+                        (1 - (float(row.get("Attrition_Risk", 0)) / 100.0)) * 100
+                    ),
+                    "replacement_cost": float(row.get("MonthlyIncome", 0)) * 12,
+                    "shap_summary": "Batch prediction - SHAP not computed",
+                }
+                try:
+                    add_prediction(record)
+                except Exception as db_e:
+                    pass
+
         # Employee Ranking
         st.subheader("Employee Risk Ranking")
 

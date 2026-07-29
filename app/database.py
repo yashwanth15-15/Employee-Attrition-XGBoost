@@ -20,6 +20,8 @@ EXPECTED_COLUMNS = {
     "risk_category": "TEXT",
     "health_score": "INTEGER",
     "replacement_cost": "REAL",
+    "employee_id": "TEXT",
+    "shap_summary": "TEXT",
 }
 
 
@@ -161,7 +163,51 @@ def prediction_exists_at_datetime(dt_str: str, unique_fields: dict = None) -> bo
     return exists
 
 
+def seed_database_if_empty():
+    import random
+    from datetime import datetime, timedelta
+
+    df = get_predictions()
+    if not df.empty:
+        return
+
+    departments = ["Sales", "Human Resources", "Research & Development"]
+    genders = ["Male", "Female"]
+    marital_statuses = ["Single", "Married", "Divorced"]
+    overtimes = ["Yes", "No"]
+
+    for i in range(1, 21):
+        prob = random.uniform(0.1, 0.9)
+        risk = "High" if prob > 0.6 else "Medium" if prob > 0.3 else "Low"
+        health = int((1 - prob) * 100)
+        income = random.randint(3000, 15000)
+
+        record = {
+            "prediction_date": (
+                datetime.now() - timedelta(days=random.randint(0, 30))
+            ).strftime("%Y-%m-%d %H:%M:%S"),
+            "employee_id": f"EMP{i:03d}",
+            "employee_name": f"Employee {i}",
+            "age": random.randint(22, 60),
+            "gender": random.choice(genders),
+            "department": random.choice(departments),
+            "marital_status": random.choice(marital_statuses),
+            "monthly_income": income,
+            "years_at_company": random.randint(0, 20),
+            "job_satisfaction": random.randint(1, 4),
+            "work_life_balance": random.randint(1, 4),
+            "overtime": random.choice(overtimes),
+            "prediction_probability": prob,
+            "risk_category": risk,
+            "health_score": health,
+            "replacement_cost": income * 12,
+            "shap_summary": "Monthly Income: 15.0%, OverTime: 12.0%, Age: -5.0%",
+        }
+        add_prediction(record)
+
+
 # Ensure table exists on import
 # Ensure schema is up‑to‑date on import
 create_table()
 ensure_schema()
+seed_database_if_empty()

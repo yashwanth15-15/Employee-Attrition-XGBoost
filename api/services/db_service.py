@@ -43,6 +43,7 @@ class DBService:
             # For phase 4 requirements, we should just call add_prediction
             record = {
                 "prediction_date": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "employee_id": emp_id,
                 "employee_name": f"Employee_{emp_id}",
                 "age": age,
                 "gender": gender,
@@ -57,6 +58,7 @@ class DBService:
                 "risk_category": risk,
                 "health_score": int((1 - prob) * 100),
                 "replacement_cost": salary * 12,
+                "shap_summary": factors,
             }
             return add_prediction(record)
         except Exception as e:

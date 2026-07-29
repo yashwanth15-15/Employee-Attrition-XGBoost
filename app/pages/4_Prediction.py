@@ -102,6 +102,39 @@ if predict:
             hr_report = result["recommendations"]
             pred_id = result.get("prediction_id")
 
+            # Extract shap_summary
+            shap_summary = ", ".join(
+                [f"{d['feature']}: {d['contribution']:.1f}%" for d in top_risk_drivers]
+            )
+
+            # Save to frontend local database
+            import uuid
+            from datetime import datetime
+
+            from database import add_prediction
+
+            local_emp_id = str(uuid.uuid4())[:8]
+            record = {
+                "prediction_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "employee_id": local_emp_id,
+                "employee_name": f"Employee_{local_emp_id}",
+                "age": employee_details.get("Age", 30),
+                "gender": employee_details.get("Gender", "Unknown"),
+                "department": employee_details.get("Department", "Unknown"),
+                "marital_status": employee_details.get("Marital Status", "Single"),
+                "monthly_income": employee_details.get("Monthly Income", 0),
+                "years_at_company": employee_details.get("Years At Company", 0),
+                "job_satisfaction": employee_details.get("Job Satisfaction", 3),
+                "work_life_balance": employee_details.get("Work Life Balance", 3),
+                "overtime": employee_details.get("OverTime", "No"),
+                "prediction_probability": probability,
+                "risk_category": risk_category,
+                "health_score": int((1 - probability) * 100),
+                "replacement_cost": employee_details.get("Monthly Income", 0) * 12,
+                "shap_summary": shap_summary,
+            }
+            add_prediction(record)
+
             st.success(f"✔ Prediction stored successfully (ID: {pred_id})")
         except Exception as e:
             st.error(

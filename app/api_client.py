@@ -1,9 +1,9 @@
 import os
+
 import requests
 
 BACKEND_URL = os.getenv(
-    "BACKEND_URL",
-    "https://employee-attrition-xgboost.onrender.com"
+    "BACKEND_URL", "https://employee-attrition-xgboost.onrender.com"
 )
 
 
