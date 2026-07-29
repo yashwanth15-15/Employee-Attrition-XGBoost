@@ -79,3 +79,12 @@ Aggregates all historical predictions from the SQLite database to generate high-
 ### 4. Health Check
 **`GET /api/v1/health`**
 Returns the status of the API, verifying that the XGBoost model is loaded into memory and the database connection is active.
+
+---
+
+### 5. Download Analytics Report
+**`GET /api/v1/reports/pdf`**
+Generates a downloadable PDF report summarizing current employee attrition risks.
+
+**Response:**
+- PDF File (`application/pdf`)

@@ -7,13 +7,13 @@ This document outlines the steps required to deploy the Employee Attrition Predi
 Streamlit Community Cloud is the optimal platform for hosting the Streamlit frontend. It is free and natively supports GitHub repositories.
 
 **Pre-requisites:**
-Before deploying, ensure your `App/app.py` script makes API calls to your hosted FastAPI backend URL, rather than `localhost:8000`. You can handle this via environment variables.
+Before deploying, ensure your `app/app.py` script makes API calls to your hosted FastAPI backend URL, rather than `localhost:8000`. You can handle this via environment variables.
 
 **Steps:**
 1. Log in to [Streamlit Community Cloud](https://share.streamlit.io/).
 2. Click **New app**.
 3. Select this GitHub repository and the `main` branch.
-4. Set the **Main file path** to `App/app.py`.
+4. Set the **Main file path** to `app/app.py`.
 5. Click **Advanced settings** and define your Environment Variables:
    ```env
    BACKEND_API_URL=https://your-fastapi-backend-url.onrender.com
@@ -60,5 +60,5 @@ Railway allows you to deploy the entire `docker-compose.yml` stack simultaneousl
 ---
 
 ## Important Considerations for Production
-*   **Database Persistence**: In ephemeral cloud platforms (like Render Free Tier or Heroku), the local `employee_predictions.db` SQLite file will be wiped every time the server restarts. For production, migrate the DB connection in `App.database.py` and `api/config.py` to a managed PostgreSQL database (e.g., Supabase or Neon).
+*   **Database Persistence**: In ephemeral cloud platforms (like Render Free Tier or Heroku), the local `employee_predictions.db` SQLite file will be wiped every time the server restarts. For production, migrate the DB connection in `app/database.py` and `api/config.py` to a managed PostgreSQL database (e.g., Supabase or Neon).
 *   **CORS**: Ensure that the `api/main.py` CORS configuration includes the production URL of your frontend (e.g., `https://your-app.streamlit.app`).
