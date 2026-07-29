@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from database import create_table
 from helpers.metrics_calculator import get_model_metrics
 from logger import logger
+from api_client import BACKEND_URL
 
 create_table()
 
@@ -36,7 +37,7 @@ st.markdown("---")
 st.markdown("#### System Status")
 with st.container():
     try:
-        response = requests.get("http://localhost:8000/api/v1/health", timeout=3)
+        response = requests.get(f"{BACKEND_URL}/api/v1/health", timeout=3)
         if response.status_code == 200:
             st.success("✅ Backend API is running and connected.")
             logger.info("Backend connection successful.")
