@@ -8,7 +8,7 @@ from api.core.exceptions import APIException
 from api.core.logger import logger
 from api.models.schemas import (EmployeeFeatures, SimulationRequest,
                                 SimulationResponse)
-from api.services.ml_service import ml_service
+from api.services.ml_service import get_ml_service
 
 router = APIRouter(
     prefix="/simulate", 
@@ -35,7 +35,8 @@ async def simulate_what_if(
         base_dict = request.base_features.model_dump(by_alias=True)
 
         # Predict original
-        orig_prob, orig_risk, _ = ml_service.predict(base_dict)
+        ml_svc = get_ml_service()
+        orig_prob, orig_risk, _ = ml_svc.predict(base_dict)
 
         # Apply modifications securely by validating against the schema
         base_dict.update(request.modified_features)
@@ -43,7 +44,7 @@ async def simulate_what_if(
         mod_dict = mod_employee.model_dump(by_alias=True)
 
         # Predict new
-        new_prob, new_risk, _ = ml_service.predict(mod_dict)
+        new_prob, new_risk, _ = ml_svc.predict(mod_dict)
 
         delta = orig_prob - new_prob
         if delta > 0:

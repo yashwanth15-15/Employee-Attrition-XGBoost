@@ -225,5 +225,17 @@ class MLService:
         return prob, risk_category, top_risk_drivers
 
 
-# Instantiate singleton ML Service
-ml_service = MLService()
+# Lazy singleton – created on first access, NOT at import time.
+# This prevents blocking Uvicorn's port binding during module imports.
+_ml_service: MLService | None = None
+
+
+def get_ml_service() -> MLService:
+    """Return the ML service singleton, creating it on first call."""
+    global _ml_service
+    if _ml_service is None:
+        logger.info("Initializing MLService singleton (first access)...")
+        _ml_service = MLService()
+        logger.info("MLService singleton ready.")
+    return _ml_service
+

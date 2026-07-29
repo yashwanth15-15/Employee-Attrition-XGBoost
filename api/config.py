@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+from typing import Optional
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,11 +19,9 @@ class Settings(BaseSettings):
     # Paths (Resolved via pathlib)
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
     DATABASE_PATH: Path = Path(
-        os.environ.get("DATABASE_PATH", BASE_DIR / "employee_predictions.db")
+        os.environ.get("DATABASE_PATH", str(BASE_DIR / "employee_predictions.db"))
     )
-    DATABASE_URL: str = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{DATABASE_PATH}"
-    )
+    DATABASE_URL: Optional[str] = None
     MODELS_DIR: Path = BASE_DIR / "models"
 
     # Model files
@@ -40,5 +40,13 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+    @model_validator(mode="after")
+    def _resolve_database_url(self) -> "Settings":
+        """Compute DATABASE_URL from DATABASE_PATH after env overrides are applied."""
+        if not self.DATABASE_URL:
+            self.DATABASE_URL = f"sqlite:///{self.DATABASE_PATH}"
+        return self
+
 
 settings = Settings()
+

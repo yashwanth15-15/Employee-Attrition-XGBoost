@@ -10,7 +10,7 @@ from api.core.exceptions import APIException
 from api.core.logger import logger
 from api.models.schemas import EmployeeFeatures, PredictionResponse
 from api.services.db_service import db_service
-from api.services.ml_service import ml_service
+from api.services.ml_service import get_ml_service
 from api.services.recommendation import recommendation_service
 
 router = APIRouter(
@@ -40,7 +40,7 @@ async def predict_attrition(
         features_dict = employee.model_dump(by_alias=True)
 
         # 1. Run ML Model
-        prob, risk_category, top_risk_drivers = ml_service.predict(features_dict)
+        prob, risk_category, top_risk_drivers = get_ml_service().predict(features_dict)
 
         # 2. Generate Recommendations
         recommendations = recommendation_service.generate(

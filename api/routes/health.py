@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from api.core.exceptions import APIException
 from api.core.logger import logger
 from api.services.db_service import db_service
-from api.services.ml_service import ml_service
+from api.services.ml_service import get_ml_service
 
 router = APIRouter(prefix="/health", tags=["System"])
 
@@ -33,8 +33,9 @@ async def health_check() -> HealthResponse:
     logger.info("Request received for /health")
     try:
         # Check model
-        model_loaded = ml_service.model is not None
-        shap_loaded = ml_service.explainer is not None
+        ml_svc = get_ml_service()
+        model_loaded = ml_svc.model is not None
+        shap_loaded = ml_svc.explainer is not None
 
         # Check database
         db_connected = False

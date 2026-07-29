@@ -2,11 +2,21 @@ import logging
 import sys
 
 
+class FlushHandler(logging.StreamHandler):
+    """A StreamHandler that flushes after every emit.
+    Ensures logs are visible immediately in containerised environments (e.g. Render).
+    """
+
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+
 def setup_logging():
     logger = logging.getLogger("api")
     logger.setLevel(logging.INFO)
 
-    handler = logging.StreamHandler(sys.stdout)
+    handler = FlushHandler(sys.stdout)
     handler.setLevel(logging.INFO)
 
     formatter = logging.Formatter(
@@ -21,3 +31,4 @@ def setup_logging():
 
 
 logger = setup_logging()
+
