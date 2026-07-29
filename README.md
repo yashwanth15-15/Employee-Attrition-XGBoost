@@ -14,6 +14,29 @@
 
 ---
 
+## 📑 Table of Contents
+
+- [📖 Overview](#-overview)
+- [✨ Key Features](#-key-features)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [🏗️ System Architecture](#️-system-architecture)
+- [📁 Project Structure](#-project-structure)
+- [⚙️ Machine Learning Pipeline](#️-machine-learning-pipeline)
+- [🧠 Explainable AI (SHAP)](#-explainable-ai-shap)
+- [🖥️ Dashboard Pages](#️-dashboard-pages)
+- [🔌 API Endpoints](#-api-endpoints)
+- [Environment Variables](#environment-variables)
+- [🚀 Installation & Setup](#-installation--setup)
+- [🏃‍♂️ Running the Project](#️-running-the-project)
+- [🐳 Docker Deployment](#-docker-deployment)
+- [📸 Screenshots](#-screenshots)
+- [💼 Business Impact](#-business-impact)
+- [🔮 Future Improvements](#-future-improvements)
+- [👨‍💻 Author](#-author)
+- [📄 License](#-license)
+
+---
+
 ## 📖 Overview
 
 Employee attrition is a critical challenge for modern organizations, often leading to significant financial costs, loss of institutional knowledge, and decreased team morale. 
@@ -152,12 +175,24 @@ Instead of just returning a "75% Risk" score, SHAP breaks down the prediction to
 The decoupled FastAPI backend exposes the following robust endpoints:
 
 - `GET /api/v1/health`: Service health check.
-- `POST /api/v1/predict/single`: Predict attrition risk for a single employee.
-- `POST /api/v1/predict/batch`: Process a CSV of multiple employees.
+- `POST /api/v1/predict`: Predict attrition risk for a single employee and generate recommendations.
 - `POST /api/v1/simulate`: Run a "what-if" scenario returning the delta in attrition probability.
-- `GET /api/v1/analytics/department`: Aggregate statistics by department.
-- `GET /api/v1/analytics/executive`: System-wide KPIs for the executive dashboard.
-- `POST /api/v1/reports/pdf`: Generate a binary PDF report of an employee's prediction.
+- `GET /api/v1/analytics/summary`: Aggregate risk statistics across all departments and system-wide KPIs.
+- `GET /api/v1/reports/pdf`: Generate a downloadable PDF report summarizing current employee attrition risks.
+
+---
+
+## Environment Variables
+
+The project uses environment variables for configuration. You can easily set these up by copying the provided example file.
+
+Create the `.env` file from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Make sure to edit the `.env` file and fill in the necessary values before running the application.
 
 ---
 
@@ -246,9 +281,21 @@ By deploying this platform, HR Departments can:
 
 **Bankapalli Yashwanth**
 
-- 🐙 GitHub: [@yourgithubusername](https://github.com/yourusername)
-- 💼 LinkedIn: [Bankapalli Yashwanth](https://linkedin.com/in/yourlinkedinprofile)
-- ✉️ Email: [your.email@example.com](mailto:your.email@example.com)
+🎓 B.Tech Computer Science & Engineering (AI/ML Enthusiast)
+
+📧 Email: bankapallyashwanth03@gmail.com
+
+💼 LinkedIn:
+https://www.linkedin.com/in/yashwanth-bankapalli-475838263
+
+🐙 GitHub:
+https://github.com/yashwanth15-15
+
+### Connect With Me
+
+[![GitHub](https://img.shields.io/badge/GitHub-yashwanth15--15-181717?style=for-the-badge&logo=github)](https://github.com/yashwanth15-15)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Bankapalli%20Yashwanth-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/yashwanth-bankapalli-475838263)
+[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail)](mailto:bankapallyashwanth03@gmail.com)
 
 ---
 
