@@ -4,34 +4,36 @@ from pydantic import BaseModel, Field
 
 
 class EmployeeFeatures(BaseModel):
-    Age: int = Field(..., ge=18, le=100)
+    """Schema representing employee data features required for prediction."""
+    
+    Age: int = Field(..., ge=18, le=100, description="Employee's age in years.")
     Gender: Literal["Male", "Female"] = Field(..., description="Male or Female")
     Department: Literal["Sales", "Research & Development", "Human Resources"] = Field(
         ..., description="Department name"
     )
-    Monthly_Income: float = Field(..., alias="Monthly Income")
+    Monthly_Income: float = Field(..., alias="Monthly Income", description="Monthly salary in USD.")
     Marital_Status: Literal["Single", "Married", "Divorced"] = Field(
         ..., alias="Marital Status"
     )
     OverTime: Literal["Yes", "No"] = Field(..., description="Yes or No")
-    Years_At_Company: int = Field(..., alias="Years At Company", ge=0)
-    Total_Working_Years: int = Field(..., alias="Total Working Years", ge=0)
-    Job_Satisfaction: int = Field(..., alias="Job Satisfaction", ge=1, le=4)
+    Years_At_Company: int = Field(..., alias="Years At Company", ge=0, description="Number of years employed at the company.")
+    Total_Working_Years: int = Field(..., alias="Total Working Years", ge=0, description="Total years of professional experience.")
+    Job_Satisfaction: int = Field(..., alias="Job Satisfaction", ge=1, le=4, description="Job satisfaction rating (1-4).")
     Environment_Satisfaction: int = Field(
-        ..., alias="Environment Satisfaction", ge=1, le=4
+        ..., alias="Environment Satisfaction", ge=1, le=4, description="Work environment satisfaction rating (1-4)."
     )
-    Work_Life_Balance: int = Field(..., alias="Work Life Balance", ge=1, le=4)
+    Work_Life_Balance: int = Field(..., alias="Work Life Balance", ge=1, le=4, description="Work-life balance rating (1-4).")
     Years_Since_Last_Promotion: int = Field(
-        ..., alias="Years Since Last Promotion", ge=0
+        ..., alias="Years Since Last Promotion", ge=0, description="Years since the last promotion."
     )
-    Training_Times_Last_Year: int = Field(..., alias="Training Times Last Year", ge=0)
+    Training_Times_Last_Year: int = Field(..., alias="Training Times Last Year", ge=0, description="Number of training sessions attended last year.")
     Business_Travel: Literal["Non-Travel", "Travel_Rarely", "Travel_Frequently"] = (
-        Field(..., alias="Business Travel")
+        Field(..., alias="Business Travel", description="Frequency of business travel.")
     )
-    Distance_From_Home: int = Field(..., alias="Distance From Home", ge=0)
-    Performance_Rating: int = Field(3, alias="Performance Rating", ge=1, le=4)
-    Stock_Option_Level: int = Field(0, alias="Stock Option Level", ge=0, le=3)
-    Years_In_Current_Role: int = Field(0, alias="Years In Current Role", ge=0)
+    Distance_From_Home: int = Field(..., alias="Distance From Home", ge=0, description="Distance from home in miles/km.")
+    Performance_Rating: int = Field(3, alias="Performance Rating", ge=1, le=4, description="Employee performance rating (1-4).")
+    Stock_Option_Level: int = Field(0, alias="Stock Option Level", ge=0, le=3, description="Stock options level granted (0-3).")
+    Years_In_Current_Role: int = Field(0, alias="Years In Current Role", ge=0, description="Years spent in the current role.")
 
     model_config = {
         "populate_by_name": True,
@@ -61,7 +63,8 @@ class EmployeeFeatures(BaseModel):
 
 
 class HRRecommendations(BaseModel):
-    priority: str
+    """Schema for HR actionable recommendations based on risk."""
+    priority: str = Field(..., description="Action priority level (e.g., High, Medium, Low).")
     response_time: str
     factors: List[str]
     immediate_actions: List[str]
@@ -71,27 +74,31 @@ class HRRecommendations(BaseModel):
 
 
 class RiskDriver(BaseModel):
-    feature: str
+    """Schema representing a single feature's contribution to attrition risk."""
+    feature: str = Field(..., description="Name of the feature.")
     contribution: float
     impact: str
     shap_value: float
 
 
 class PredictionResponse(BaseModel):
-    probability: float
-    risk_category: str
+    """Schema for the main prediction endpoint response."""
+    probability: float = Field(..., description="Calculated probability of attrition (0.0 to 1.0).")
+    risk_category: str = Field(..., description="Assigned risk category based on probability.")
     top_risk_drivers: List[RiskDriver]
     recommendations: HRRecommendations
     prediction_id: Optional[int] = None
 
 
 class SimulationRequest(BaseModel):
-    base_features: EmployeeFeatures
+    """Schema for requesting a what-if analysis on modified employee features."""
+    base_features: EmployeeFeatures = Field(..., description="Original employee features.")
     modified_features: Dict[str, Any]
 
 
 class SimulationResponse(BaseModel):
-    original_probability: float
+    """Schema for the response to a what-if simulation request."""
+    original_probability: float = Field(..., description="Probability of attrition before modifications.")
     new_probability: float
     probability_change: float
     original_risk: str

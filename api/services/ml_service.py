@@ -7,20 +7,21 @@ import pandas as pd
 import shap
 
 from api.config import settings
+from api.core.constants import (
+    DEFAULT_EDUCATION,
+    DEFAULT_JOB_INVOLVEMENT,
+    DEFAULT_JOB_LEVEL,
+    DEFAULT_NUM_COMPANIES_WORKED,
+    DEFAULT_PERFORMANCE_RATING,
+    DEFAULT_RELATIONSHIP_SATISFACTION,
+    DEFAULT_SALARY_HIKE,
+    MAX_TOP_FEATURES,
+)
 from api.core.exceptions import (ModelLoadError, PredictionError,
                                  PreprocessingError, SHAPGenerationError)
 from api.core.logger import logger
 from api.utils.risk_calculator import calculate_risk
 
-# --- Constants for defaults and magic numbers ---
-DEFAULT_PERFORMANCE_RATING = 3
-DEFAULT_JOB_INVOLVEMENT = 3
-DEFAULT_EDUCATION = 3
-DEFAULT_NUM_COMPANIES_WORKED = 1
-DEFAULT_RELATIONSHIP_SATISFACTION = 3
-DEFAULT_JOB_LEVEL = 1
-DEFAULT_SALARY_HIKE = 11
-MAX_TOP_FEATURES = 5
 
 
 class RiskDriver(TypedDict):

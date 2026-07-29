@@ -4,6 +4,8 @@ import fastapi
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from api.core.exceptions import APIException
+from api.core.logger import logger
 from api.services.db_service import db_service
 from api.services.ml_service import ml_service
 
@@ -24,26 +26,35 @@ class HealthResponse(BaseModel):
 @router.get(
     "", response_model=HealthResponse, summary="Check API health and dependency status"
 )
-async def health_check():
-    # Check model
-    model_loaded = ml_service.model is not None
-    shap_loaded = ml_service.explainer is not None
-
-    # Check database
-    db_connected = False
+async def health_check() -> HealthResponse:
+    """
+    Returns the health status of the API and its internal dependencies.
+    """
+    logger.info("Request received for /health")
     try:
-        db_service.get_all_predictions()
-        db_connected = True
-    except Exception:
-        pass
+        # Check model
+        model_loaded = ml_service.model is not None
+        shap_loaded = ml_service.explainer is not None
 
-    return HealthResponse(
-        status="ok",
-        message="FastAPI backend is running successfully.",
-        fastapi_version=fastapi.__version__,
-        model_loaded=model_loaded,
-        database_connected=db_connected,
-        shap_available=shap_loaded,
-        recommendation_engine_available=True,  # Engine is a static module
-        timestamp=datetime.now().isoformat(),
-    )
+        # Check database
+        db_connected = False
+        try:
+            db_service.get_all_predictions()
+            db_connected = True
+        except Exception:
+            pass
+
+        logger.info("Successfully processed /health")
+        return HealthResponse(
+            status="ok",
+            message="FastAPI backend is running successfully.",
+            fastapi_version=fastapi.__version__,
+            model_loaded=model_loaded,
+            database_connected=db_connected,
+            shap_available=shap_loaded,
+            recommendation_engine_available=True,  # Engine is a static module
+            timestamp=datetime.now().isoformat(),
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in /health: {str(e)}")
+        raise APIException(f"Health check failed: {str(e)}", status_code=500)
