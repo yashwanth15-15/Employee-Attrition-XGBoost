@@ -1,16 +1,23 @@
 from io import BytesIO
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import Response
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+from sqlalchemy.orm import Session
 
+from api.auth.dependencies import RoleChecker
+from api.database.session import get_db
 from api.core.exceptions import APIException
 from api.core.logger import logger
 from api.services.db_service import db_service
 
-router = APIRouter(prefix="/reports", tags=["Reporting"])
+router = APIRouter(
+    prefix="/reports", 
+    tags=["Reports"],
+    dependencies=[Depends(RoleChecker(["Admin", "HR_Manager", "Viewer"]))]
+)
 
 
 @router.get(
@@ -19,13 +26,13 @@ router = APIRouter(prefix="/reports", tags=["Reporting"])
     summary="Download Analytics PDF",
     description="Generates a downloadable PDF report summarizing current employee attrition risks.",
 )
-async def generate_pdf_report() -> Response:
+async def download_pdf_report(db: Session = Depends(get_db)) -> Response:
     """
-    Generates a PDF report containing high-level analytics from the database.
+    Generate PDF report based on current analytics and predictions.
     """
     logger.info("Request received for /reports/pdf")
     try:
-        records = db_service.get_all_predictions()
+        records = db_service.get_all_predictions(db)
         if not records:
             return Response(
                 content="No data available", media_type="text/plain", status_code=404

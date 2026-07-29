@@ -1,6 +1,10 @@
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from api.auth.dependencies import RoleChecker
+from api.database.session import get_db
 
 from api.core.exceptions import APIException
 from api.core.logger import logger
@@ -9,7 +13,11 @@ from api.services.db_service import db_service
 from api.services.ml_service import ml_service
 from api.services.recommendation import recommendation_service
 
-router = APIRouter(prefix="/predict", tags=["Prediction"])
+router = APIRouter(
+    prefix="/predict", 
+    tags=["Prediction"],
+    dependencies=[Depends(RoleChecker(["Admin", "HR_Manager"]))]
+)
 
 
 @router.post(
@@ -18,7 +26,10 @@ router = APIRouter(prefix="/predict", tags=["Prediction"])
     summary="Predict Attrition Risk",
     description="Submit employee features to receive the attrition probability, SHAP analysis, and HR recommendations.",
 )
-async def predict_attrition(employee: EmployeeFeatures) -> PredictionResponse:
+async def predict_attrition(
+    employee: EmployeeFeatures,
+    db: Session = Depends(get_db)
+) -> PredictionResponse:
     """
     Endpoint to predict employee attrition risk, generate SHAP explanations,
     and formulate HR recommendations.
@@ -42,6 +53,7 @@ async def predict_attrition(employee: EmployeeFeatures) -> PredictionResponse:
         # 3. Save to database
         emp_id = str(uuid.uuid4())[:8]
         pred_id = db_service.save_prediction_record(
+            db=db,
             emp_id=emp_id,
             features=features_dict,
             prob=prob,

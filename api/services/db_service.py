@@ -7,10 +7,8 @@ import pandas as pd
 from api.core.exceptions import DatabaseError
 from api.core.logger import logger
 
-# We temporarily append App dir to path to reuse the exact database file
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.database import (add_prediction, get_predictions,
-                          get_user_by_username, create_user)
+from sqlalchemy.orm import Session
+from api.database import crud
 
 
 class DBService:
@@ -69,6 +67,7 @@ class DBService:
 
     @staticmethod
     def save_prediction_record(
+        db: Session,
         emp_id: str,
         features: Dict[str, Any],
         prob: float,
@@ -95,38 +94,37 @@ class DBService:
             record = DBService._map_features_to_db_record(
                 emp_id, features, prob, risk, shap_dict
             )
-            return add_prediction(record)
+            return crud.create_prediction(db, record)
         except Exception as e:
             logger.error(f"Failed to save prediction: {e}")
             raise DatabaseError(f"Database save error: {str(e)}")
 
     @staticmethod
-    def get_all_predictions() -> List[Dict[str, Any]]:
+    def get_all_predictions(db: Session) -> List[Dict[str, Any]]:
         try:
-            df = get_predictions()
-            if df.empty:
-                return []
-            return df.to_dict(orient="records")
+            records = crud.get_all_predictions(db)
+            return [{c.name: getattr(r, c.name) for c in r.__table__.columns} for r in records]
         except Exception as e:
             logger.error(f"Failed to get predictions: {e}")
             raise DatabaseError(f"Database read error: {str(e)}")
 
-
     @staticmethod
-    def get_user_by_username(username: str) -> Dict[str, Any]:
+    def get_user_by_username(db: Session, username: str) -> Dict[str, Any]:
         try:
-            return get_user_by_username(username)
+            user = crud.get_user_by_username(db, username)
+            if user:
+                return {c.name: getattr(user, c.name) for c in user.__table__.columns}
+            return None
         except Exception as e:
             logger.error(f"Failed to get user {username}: {e}")
             raise DatabaseError(f"Database read error: {str(e)}")
 
     @staticmethod
-    def create_user(user: Dict[str, Any]) -> None:
+    def create_user(db: Session, user: Dict[str, Any]) -> None:
         try:
-            create_user(user)
+            crud.create_user(db, user)
         except Exception as e:
             logger.error(f"Failed to create user: {e}")
             raise DatabaseError(f"Database save error: {str(e)}")
-
 
 db_service = DBService()

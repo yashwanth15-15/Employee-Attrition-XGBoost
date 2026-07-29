@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     DATABASE_PATH: Path = Path(
         os.environ.get("DATABASE_PATH", BASE_DIR / "employee_predictions.db")
     )
+    DATABASE_URL: str = os.environ.get(
+        "DATABASE_URL", f"sqlite:///{DATABASE_PATH}"
+    )
     MODELS_DIR: Path = BASE_DIR / "models"
 
     # Model files

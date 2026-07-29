@@ -1,12 +1,20 @@
 from typing import Any, Dict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from api.auth.dependencies import RoleChecker
+from api.database.session import get_db
 
 from api.core.exceptions import APIException
 from api.core.logger import logger
 from api.services.db_service import db_service
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+router = APIRouter(
+    prefix="/analytics", 
+    tags=["Analytics"],
+    dependencies=[Depends(RoleChecker(["Admin", "HR_Manager", "Viewer"]))]
+)
 
 
 @router.get(
@@ -15,13 +23,13 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
     summary="Get Department Analytics",
     description="Retrieves aggregated risk statistics across all departments from the database.",
 )
-async def get_analytics_summary() -> Dict[str, Any]:
+async def get_analytics_summary(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     Retrieves and calculates high-level analytics for all departments.
     """
     logger.info("Request received for /analytics/summary")
     try:
-        records = db_service.get_all_predictions()
+        records = db_service.get_all_predictions(db)
 
         total = len(records)
         if total == 0:

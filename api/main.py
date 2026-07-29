@@ -42,9 +42,16 @@ async def lifespan(app: FastAPI):
         logger.error("SHAP explainer failed to initialize.")
         raise RuntimeError("Invalid SHAP configuration.")
         
-    # Setup Auth defaults
+    # Setup DB and Auth defaults
+    from api.database.session import engine, Base, SessionLocal
+    Base.metadata.create_all(bind=engine)
+    
     from api.auth.auth_service import auth_service
-    auth_service.create_default_admin()
+    db = SessionLocal()
+    try:
+        auth_service.create_default_admin(db)
+    finally:
+        db.close()
 
     logger.info("Startup validation passed successfully.")
     yield

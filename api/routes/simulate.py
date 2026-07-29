@@ -1,4 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from api.auth.dependencies import RoleChecker
+from api.database.session import get_db
 
 from api.core.exceptions import APIException
 from api.core.logger import logger
@@ -6,7 +10,11 @@ from api.models.schemas import (EmployeeFeatures, SimulationRequest,
                                 SimulationResponse)
 from api.services.ml_service import ml_service
 
-router = APIRouter(prefix="/simulate", tags=["Simulation"])
+router = APIRouter(
+    prefix="/simulate", 
+    tags=["Simulation"],
+    dependencies=[Depends(RoleChecker(["Admin", "HR_Manager"]))]
+)
 
 
 @router.post(
@@ -15,7 +23,10 @@ router = APIRouter(prefix="/simulate", tags=["Simulation"])
     summary="Simulate What-If Scenarios",
     description="Modify features of an employee to see how it affects their attrition probability.",
 )
-async def simulate_what_if(request: SimulationRequest) -> SimulationResponse:
+async def simulate_what_if(
+    request: SimulationRequest,
+    db: Session = Depends(get_db)
+) -> SimulationResponse:
     """
     Simulates changes to an employee's profile and returns the delta in attrition probability.
     """

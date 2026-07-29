@@ -1,17 +1,30 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
 
-client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
+
+@pytest.fixture(scope="module")
+def admin_token(client):
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": "admin", "password": "Admin@123"}
+    )
+    return response.json()["access_token"]
 
 
-def test_health_check():
+def test_health_check(client):
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
 
-def test_predict_endpoint():
+def test_predict_endpoint(client, admin_token):
     payload = {
         "Age": 30,
         "Gender": "Male",
@@ -30,7 +43,7 @@ def test_predict_endpoint():
         "Distance From Home": 5,
     }
 
-    response = client.post("/api/v1/predict", json=payload)
+    response = client.post("/api/v1/predict", json=payload, headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
     data = response.json()
     assert "probability" in data
@@ -40,7 +53,7 @@ def test_predict_endpoint():
     assert "immediate_actions" in data["recommendations"]
 
 
-def test_simulate_endpoint():
+def test_simulate_endpoint(client, admin_token):
     payload = {
         "base_features": {
             "Age": 30,
@@ -62,7 +75,7 @@ def test_simulate_endpoint():
         "modified_features": {"OverTime": "No", "Job Satisfaction": 4},
     }
 
-    response = client.post("/api/v1/simulate", json=payload)
+    response = client.post("/api/v1/simulate", json=payload, headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
     data = response.json()
     assert "probability_change" in data

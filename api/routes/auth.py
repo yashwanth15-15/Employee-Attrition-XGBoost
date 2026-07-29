@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 
 from api.auth.auth_service import auth_service
 from api.auth.dependencies import get_current_user
 from api.auth.jwt_handler import create_access_token
+from api.database.session import get_db
 from api.core.logger import logger
 from api.models.auth_schemas import TokenResponse, UserResponse
 
@@ -11,12 +13,14 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenResponse:
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+) -> TokenResponse:
     """
-    Authenticates a user and returns a JWT access token.
-    Uses OAuth2PasswordRequestForm for Swagger UI compatibility.
+    Authenticate user and return a JWT access token.
     """
-    user = auth_service.authenticate_user(form_data.username, form_data.password)
+    user = auth_service.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
