@@ -52,6 +52,12 @@ https://github.com/yashwanth15-15/Employee-Attrition-XGBoost
 
 ---
 
+## 🎥 Demo Video
+
+> Demo video coming soon.
+
+---
+
 ## 📑 Table of Contents
 
 - [📖 Overview](#-overview)
@@ -232,14 +238,20 @@ cp .env.example .env
 
 Make sure to edit the `.env` file and fill in the necessary values before running the application.
 
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `BACKEND_URL` | FastAPI backend URL used by Streamlit | `https://employee-attrition-xgboost.onrender.com` |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins for the backend | `https://my-frontend.streamlit.app` |
+| `DATABASE_PATH` | Path to the SQLite database (optional, defaults to local folder) | `/data/employee_predictions.db` |
+
 ---
 
 ## 🚀 Installation & Setup
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/employee-attrition-platform.git
-cd employee-attrition-platform
+git clone https://github.com/yashwanth15-15/Employee-Attrition-XGBoost.git
+cd Employee-Attrition-XGBoost
 ```
 
 ### 2. Create a Virtual Environment
@@ -294,8 +306,6 @@ docker run -p 8501:8501 -p 8000:8000 attrition-platform
 | **Executive Overview** | **Batch Processing** |
 | ![Executive Dashboard](screenshots/app/executive_dashboard.png) | ![Batch Prediction](screenshots/app/batch_prediction.png) |
 
-*(Note: Replace placeholder image paths with actual screenshots)*
-
 ---
 
 ## 💼 Business Impact
@@ -321,7 +331,7 @@ By deploying this platform, HR Departments can:
 
 🎓 B.Tech Computer Science & Engineering (AI/ML Enthusiast)
 
-📧 Email: bankapallyashwanth03@gmail.com
+📧 Email: bankapalliyashwanth03@gmail.com
 
 💼 LinkedIn:
 https://www.linkedin.com/in/yashwanth-bankapalli-475838263
@@ -333,7 +343,7 @@ https://github.com/yashwanth15-15
 
 [![GitHub](https://img.shields.io/badge/GitHub-yashwanth15--15-181717?style=for-the-badge&logo=github)](https://github.com/yashwanth15-15)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Bankapalli%20Yashwanth-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/yashwanth-bankapalli-475838263)
-[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail)](mailto:bankapallyashwanth03@gmail.com)
+[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail)](mailto:bankapalliyashwanth03@gmail.com)
 
 ---
 
