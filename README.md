@@ -14,6 +14,44 @@
 
 ---
 
+# 🌐 Live Demo
+
+## 🚀 Live Application
+
+### 🖥️ Streamlit Frontend
+https://employee-attrition-xgboost-ty2lmvmj2hjnqfh5waxpls.streamlit.app/
+
+### ⚙️ FastAPI Backend
+https://employee-attrition-xgboost.onrender.com
+
+### 📖 Swagger API Documentation
+https://employee-attrition-xgboost.onrender.com/docs
+
+### 📚 ReDoc API Documentation
+https://employee-attrition-xgboost.onrender.com/redoc
+
+### ❤️ Health Check
+https://employee-attrition-xgboost.onrender.com/api/v1/health
+
+### 🐙 GitHub Repository
+https://github.com/yashwanth15-15/Employee-Attrition-XGBoost
+
+---
+
+## 🔗 Quick Access
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-success?style=for-the-badge&logo=streamlit)](https://employee-attrition-xgboost-ty2lmvmj2hjnqfh5waxpls.streamlit.app/)
+
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi)](https://employee-attrition-xgboost.onrender.com)
+
+[![Swagger Docs](https://img.shields.io/badge/API-Swagger-85EA2D?style=for-the-badge&logo=swagger)](https://employee-attrition-xgboost.onrender.com/docs)
+
+[![ReDoc](https://img.shields.io/badge/API-ReDoc-8B0000?style=for-the-badge)](https://employee-attrition-xgboost.onrender.com/redoc)
+
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/yashwanth15-15/Employee-Attrition-XGBoost)
+
+---
+
 ## 📑 Table of Contents
 
 - [📖 Overview](#-overview)
