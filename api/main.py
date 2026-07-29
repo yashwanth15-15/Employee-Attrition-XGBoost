@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.config import settings
 from api.core.error_handlers import add_exception_handlers
 from api.core.logger import logger
-from api.routes import analytics, health, predict, reports, simulate
+from api.routes import analytics, auth, health, predict, reports, simulate
 
 
 @asynccontextmanager
@@ -41,6 +41,10 @@ async def lifespan(app: FastAPI):
     if ml_service.explainer is None:
         logger.error("SHAP explainer failed to initialize.")
         raise RuntimeError("Invalid SHAP configuration.")
+        
+    # Setup Auth defaults
+    from api.auth.auth_service import auth_service
+    auth_service.create_default_admin()
 
     logger.info("Startup validation passed successfully.")
     yield
@@ -88,6 +92,7 @@ async def log_requests(request: Request, call_next):
 add_exception_handlers(app)
 
 # Routes
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(health.router, prefix=settings.API_V1_STR)
 app.include_router(predict.router, prefix=settings.API_V1_STR)
 app.include_router(simulate.router, prefix=settings.API_V1_STR)

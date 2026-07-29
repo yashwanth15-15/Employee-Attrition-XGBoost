@@ -9,7 +9,8 @@ from api.core.logger import logger
 
 # We temporarily append App dir to path to reuse the exact database file
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.database import add_prediction, get_predictions
+from app.database import (add_prediction, get_predictions,
+                          get_user_by_username, create_user)
 
 
 class DBService:
@@ -109,6 +110,23 @@ class DBService:
         except Exception as e:
             logger.error(f"Failed to get predictions: {e}")
             raise DatabaseError(f"Database read error: {str(e)}")
+
+
+    @staticmethod
+    def get_user_by_username(username: str) -> Dict[str, Any]:
+        try:
+            return get_user_by_username(username)
+        except Exception as e:
+            logger.error(f"Failed to get user {username}: {e}")
+            raise DatabaseError(f"Database read error: {str(e)}")
+
+    @staticmethod
+    def create_user(user: Dict[str, Any]) -> None:
+        try:
+            create_user(user)
+        except Exception as e:
+            logger.error(f"Failed to create user: {e}")
+            raise DatabaseError(f"Database save error: {str(e)}")
 
 
 db_service = DBService()

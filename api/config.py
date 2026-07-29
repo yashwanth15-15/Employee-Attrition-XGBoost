@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     ENCODERS_PATH: Path = MODELS_DIR / "final_encoders.pkl"
     FEATURES_PATH: Path = MODELS_DIR / "final_features.pkl"
 
+    # Authentication Config
+    SECRET_KEY: str = os.environ.get(
+        "SECRET_KEY", "b336ff9c9e821b0333246ebde510ec0609591fc35728de7da62f7971df26f1c7"
+    )
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

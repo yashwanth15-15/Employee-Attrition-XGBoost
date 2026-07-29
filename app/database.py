@@ -42,6 +42,19 @@ def create_table():
             {columns_def}
         )
         """)
+    
+    # Create Users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
+            hashed_password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -144,6 +157,37 @@ def delete_all_predictions():
     conn.commit()
     conn.close()
 
+
+def get_user_by_username(username: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row[0],
+            "username": row[1],
+            "email": row[2],
+            "hashed_password": row[3],
+            "role": row[4],
+            "is_active": bool(row[5]),
+            "created_at": row[6]
+        }
+    return None
+
+def create_user(user: dict):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO users (id, username, email, hashed_password, role, is_active, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user['id'], user['username'], user.get('email'), user['hashed_password'], user['role'], user.get('is_active', True), user['created_at'])
+    )
+    conn.commit()
+    conn.close()
 
 def prediction_exists_at_datetime(dt_str: str, unique_fields: dict = None) -> bool:
     """Check if a prediction with the same datetime already exists.
