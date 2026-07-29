@@ -1,10 +1,25 @@
 # Changelog
 
-## Version 1.1
-- Added Gemini AI HR Assistant
-- Improved AI-generated HR recommendations
-- Added secure API key management using Streamlit Secrets
-- Updated project documentation
+## Version 2.0.0
 
-## Version 1.2
-- Added Professional AI PDF Report
+### Added
+- JWT Authentication
+- Role-Based Access Control (RBAC)
+- SQLAlchemy ORM Integration
+- PostgreSQL Support for Production
+- Streamlit Authentication enforcement
+- Dedicated Health Endpoint
+- Analytics Dashboard Improvements
+- PDF Report Generation capability
+
+### Changed
+- Refactored entire Backend Architecture
+- Migrated Database Layer to SQLAlchemy
+- Restructured API and Endpoint routing
+
+### Fixed
+- Fixed Health Endpoint database connection validation
+- Fixed Streamlit Login environment variable routing
+- Fixed Prediction History deletion logic in Streamlit UI
+- Resolved Backend Connectivity issues
+- Finalized robust Authentication Integration across frontend

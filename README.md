@@ -1,352 +1,157 @@
 # Employee Attrition Prediction & HR Analytics Platform
 
-> **Empowering HR teams with predictive insights and explainable AI to proactively manage workforce retention.**
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-00a393.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-FF4B4B.svg)
+![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-blue.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B?logo=streamlit&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
-![XGBoost](https://img.shields.io/badge/XGBoost-2.0-blue?logo=xgboost)
-![SHAP](https://img.shields.io/badge/SHAP-Explainable%20AI-orange)
-![Plotly](https://img.shields.io/badge/Plotly-Interactive-3F4F75?logo=plotly&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
+## Project Overview
+An enterprise AI-powered HR analytics platform using Machine Learning, Explainable AI, FastAPI, and Streamlit. This application predicts employee attrition risk and provides actionable HR recommendations.
 
----
+## Key Features
+- Employee Attrition Prediction
+- Batch Prediction
+- What-If Simulation
+- SHAP Explainable AI
+- HR Recommendation Engine
+- Prediction History
+- Executive Dashboard
+- Department Analytics
+- Employee Comparison
+- Workforce Planning
+- PDF Report Generation
+- REST API
+- JWT Authentication
+- Role-Based Access Control (RBAC)
+- SQLAlchemy ORM
+- SQLite (Local)
+- PostgreSQL (Production)
+- Docker Support
 
-# 🌐 Live Demo
+## Technology Stack
 
-## 🚀 Live Application
+**Frontend:**
+- Streamlit
 
-### 🖥️ Streamlit Frontend
-https://employee-attrition-xgboost-ty2lmvmj2hjnqfh5waxpls.streamlit.app/
+**Backend:**
+- FastAPI
 
-### ⚙️ FastAPI Backend
-https://employee-attrition-xgboost.onrender.com
+**Machine Learning:**
+- XGBoost
+- SHAP
 
-### 📖 Swagger API Documentation
-https://employee-attrition-xgboost.onrender.com/docs
+**Database:**
+- SQLAlchemy ORM
+- SQLite
+- PostgreSQL
 
-### 📚 ReDoc API Documentation
-https://employee-attrition-xgboost.onrender.com/redoc
+**Authentication:**
+- JWT
+- bcrypt
+- OAuth2
 
-### ❤️ Health Check
-https://employee-attrition-xgboost.onrender.com/api/v1/health
+**Visualization:**
+- Plotly
 
-### 🐙 GitHub Repository
-https://github.com/yashwanth15-15/Employee-Attrition-XGBoost
+**Deployment:**
+- Docker
+- Render
 
----
+**Language:**
+- Python
 
-## 🔗 Quick Access
+## Architecture
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-success?style=for-the-badge&logo=streamlit)](https://employee-attrition-xgboost-ty2lmvmj2hjnqfh5waxpls.streamlit.app/)
+User
+↓
+Streamlit Dashboard
+↓
+FastAPI REST API
+↓
+JWT Authentication
+↓
+Role-Based Access Control
+↓
+SQLAlchemy ORM
+↓
+SQLite (Local) / PostgreSQL (Production)
+↓
+XGBoost Model
+↓
+SHAP Explainability
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi)](https://employee-attrition-xgboost.onrender.com)
+## Folder Structure
 
-[![Swagger Docs](https://img.shields.io/badge/API-Swagger-85EA2D?style=for-the-badge&logo=swagger)](https://employee-attrition-xgboost.onrender.com/docs)
-
-[![ReDoc](https://img.shields.io/badge/API-ReDoc-8B0000?style=for-the-badge)](https://employee-attrition-xgboost.onrender.com/redoc)
-
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/yashwanth15-15/Employee-Attrition-XGBoost)
-
----
-
-## 🎥 Demo Video
-
-> Demo video coming soon.
-
----
-
-## 📑 Table of Contents
-
-- [📖 Overview](#-overview)
-- [✨ Key Features](#-key-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🏗️ System Architecture](#️-system-architecture)
-- [📁 Project Structure](#-project-structure)
-- [⚙️ Machine Learning Pipeline](#️-machine-learning-pipeline)
-- [🧠 Explainable AI (SHAP)](#-explainable-ai-shap)
-- [🖥️ Dashboard Pages](#️-dashboard-pages)
-- [🔌 API Endpoints](#-api-endpoints)
-- [Environment Variables](#environment-variables)
-- [🚀 Installation & Setup](#-installation--setup)
-- [🏃‍♂️ Running the Project](#️-running-the-project)
-- [🐳 Docker Deployment](#-docker-deployment)
-- [📸 Screenshots](#-screenshots)
-- [💼 Business Impact](#-business-impact)
-- [🔮 Future Improvements](#-future-improvements)
-- [👨‍💻 Author](#-author)
-- [📄 License](#-license)
-
----
-
-## 📖 Overview
-
-Employee attrition is a critical challenge for modern organizations, often leading to significant financial costs, loss of institutional knowledge, and decreased team morale. 
-
-This **Employee Attrition Prediction Platform** is a full-stack, end-to-end Machine Learning solution designed to help HR teams proactively identify employees at high risk of leaving. By leveraging an XGBoost predictive model combined with SHAP (Explainable AI), the platform not only predicts *who* is likely to leave but also explains *why*.
-
-With interactive dashboards, what-if simulators, and department-wide analytics, this application translates raw HR data into actionable business intelligence, ultimately enabling organizations to design targeted retention strategies and save significant replacement costs.
-
----
-
-## ✨ Key Features
-
-- 🔮 **Single Employee Prediction**: Instantly predict the attrition risk for an individual employee with a comprehensive HR risk assessment.
-- 📂 **Batch Prediction**: Upload a CSV to generate predictions and recommendations for thousands of employees simultaneously.
-- 🧠 **SHAP Explainability**: Peek inside the ML "black box" to understand the exact factors driving a specific employee's prediction.
-- 🧪 **What-if Simulator**: Interactively tweak an employee's salary, overtime, or satisfaction levels to see how it dynamically affects their retention probability.
-- 📊 **Department Analytics**: Analyze attrition trends, average risk scores, and total replacement liabilities across entire departments.
-- 📈 **Executive Dashboard**: A high-level, birds-eye view of organizational health, total financial risk, and recent prediction histories.
-- ⚖️ **Employee Comparison**: Side-by-side benchmarking of multiple employees to allocate limited retention budgets effectively.
-- 🤖 **HR Insights**: Generate AI-driven insights and immediate action plans based on predictive outputs.
-- 💾 **Prediction History**: A complete, exportable historical log of all assessments run through the platform.
-- 📑 **PDF Reports**: Export professional, single-click PDF summaries of employee attrition risks for management meetings.
-- ⚙️ **FastAPI Backend**: A highly decoupled, scalable, and robust REST API driving all ML inference.
-- 📉 **Interactive Plotly Visualizations**: Beautiful, responsive, and dynamic charts for exploratory data analysis (EDA) and reporting.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-| :--- | :--- |
-| **Frontend** | Streamlit, Plotly Express |
-| **Backend API** | FastAPI, Pydantic, Uvicorn |
-| **Machine Learning** | Scikit-Learn, XGBoost, SMOTE |
-| **Explainable AI** | SHAP (TreeExplainer) |
-| **Database** | SQLite, SQLAlchemy |
-| **Deployment** | Docker, Docker Compose |
-
----
-
-## 🏗️ System Architecture
-
-```mermaid
-graph TD
-    User([HR Professional]) -->|Interacts| UI[Streamlit Frontend]
-    UI -->|HTTP POST /predict| API[FastAPI Backend]
-    API -->|Fetch/Store| DB[(SQLite Database)]
-    API -->|Features| ML[XGBoost Model]
-    API -->|Features| SHAP[SHAP Explainer]
-    ML -->|Probabilities| API
-    SHAP -->|Feature Contributions| API
-    API -->|JSON Response| UI
-    UI -->|Render| Plotly[Plotly Visualizations]
+```
+├── api/                  # FastAPI backend
+│   ├── auth/             # Authentication mechanisms
+│   ├── core/             # Application config and logger
+│   ├── database/         # SQLAlchemy ORM schemas and connection
+│   ├── models/           # Pydantic validation schemas
+│   ├── routes/           # REST endpoints
+│   └── services/         # Machine Learning and DB services
+├── App/                  # Streamlit frontend
+│   ├── views/            # Dashboard pages
+│   ├── app.py            # Streamlit entry point
+│   └── auth_ui.py        # Streamlit auth interface
+├── docs/                 # Documentation
+├── data/                 # Datasets
+├── tests/                # Pytest suites
+└── requirements.txt      # Dependencies
 ```
 
----
-
-## 📁 Project Structure
-
-```text
-├── api/                       # FastAPI Backend
-│   ├── core/                  # Configurations, Exception Handlers, Logger
-│   ├── routes/                # API Endpoints (predict, simulate, analytics, reports)
-│   ├── services/              # ML Inference and SHAP service wrappers
-│   └── main.py                # FastAPI Application Entry Point
-├── app/                       # Streamlit Frontend
-│   ├── helpers/               # UI utility functions and components
-│   ├── pages/                 # Individual Streamlit Dashboard pages
-│   ├── app.py                 # Streamlit Entry Point (Navigation)
-│   ├── api_client.py          # HTTP client for communicating with the Backend
-│   └── database.py            # Local SQLite interactions for the frontend
-├── data/                      # IBM HR Analytics Dataset
-├── models/                    # Serialized XGBoost model, encoders, and feature lists
-├── src/                       # Machine Learning Pipeline & Training Scripts
-│   ├── preprocessing/         # Data cleaning and EDA scripts
-│   ├── training/              # Model training, SMOTE balancing, hyperparameter tuning
-│   └── evaluation/            # Model performance and SHAP analysis scripts
-├── Dockerfile                 # Docker configuration
-├── requirements.txt           # Python dependencies
-└── README.md                  # Project Documentation
-```
-
----
-
-## ⚙️ Machine Learning Pipeline
-
-The predictive engine was built using the IBM HR Analytics dataset and follows a rigorous ML lifecycle:
-
-```mermaid
-graph LR
-    A[Dataset] --> B[Preprocessing]
-    B --> C[Encoding & Scaling]
-    C --> D[Train/Test Split]
-    D --> E[SMOTE Balancing]
-    E --> F[XGBoost Training]
-    F --> G[Hyperparameter Tuning]
-    G --> H[Evaluation]
-    H --> I[Model Serialization]
-    I --> J[FastAPI Deployment]
-```
-
-**Highlights**:
-- **SMOTE** (Synthetic Minority Over-sampling Technique) was used to address class imbalance (attrition is typically a minority event).
-- **Hyperparameter Tuning** via GridSearchCV ensures optimal model performance and generalization.
-
----
-
-## 🧠 Explainable AI (SHAP)
-
-Machine learning in HR requires trust and transparency. We integrated **SHAP (SHapley Additive exPlanations)** to ensure the model's decisions are 100% transparent.
-
-Instead of just returning a "75% Risk" score, SHAP breaks down the prediction to show *exactly* how much factors like "OverTime", "Monthly Income", or "Job Satisfaction" contributed to that specific score. This empowers HR to take targeted actions rather than guessing.
-
----
-
-## 🖥️ Dashboard Pages
-
-1. **Dataset Overview**: A high-level view of the underlying HR training data.
-2. **EDA**: Dynamic cross-filtering and correlation heatmaps of the workforce.
-3. **Model Performance**: Technical metrics (Accuracy, F1, ROC-AUC) and confusion matrices of the XGBoost model.
-4. **Prediction**: The core engine to predict risk for a single employee and generate PDF reports.
-5. **Feature Importance**: Global insights into what drives attrition across the entire organization.
-6. **Batch Prediction**: Upload CSVs for mass workforce risk evaluation.
-7. **HR Insights**: AI-generated action plans based on predictive data.
-8. **SHAP Explainability**: Beeswarm plots, dependence plots, and local waterfall charts for deep ML transparency.
-9. **Prediction History**: A searchable, exportable log of all past predictions.
-10. **Executive Dashboard**: C-suite overview of total financial risk, average department health, and trends.
-11. **Department Analytics**: Granular metrics segregated by individual departments.
-12. **Employee Comparison**: Side-by-side benchmarking of up to 3 employees.
-13. **Retention Cost Workforce Planning**: Financial modeling calculating the ROI of retention strategies vs. replacement costs.
-
----
-
-## 🔌 API Endpoints
-
-The decoupled FastAPI backend exposes the following robust endpoints:
-
-- `GET /api/v1/health`: Service health check.
-- `POST /api/v1/predict`: Predict attrition risk for a single employee and generate recommendations.
-- `POST /api/v1/simulate`: Run a "what-if" scenario returning the delta in attrition probability.
-- `GET /api/v1/analytics/summary`: Aggregate risk statistics across all departments and system-wide KPIs.
-- `GET /api/v1/reports/pdf`: Generate a downloadable PDF report summarizing current employee attrition risks.
-
----
-
-## Environment Variables
-
-The project uses environment variables for configuration. You can easily set these up by copying the provided example file.
-
-Create the `.env` file from `.env.example`:
+## Installation
 
 ```bash
-cp .env.example .env
-```
-
-Make sure to edit the `.env` file and fill in the necessary values before running the application.
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `BACKEND_URL` | FastAPI backend URL used by Streamlit | `https://employee-attrition-xgboost.onrender.com` |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins for the backend | `https://my-frontend.streamlit.app` |
-| `DATABASE_PATH` | Path to the SQLite database (optional, defaults to local folder) | `/data/employee_predictions.db` |
-
----
-
-## 🚀 Installation & Setup
-
-### 1. Clone the repository
-```bash
+# Clone repository
 git clone https://github.com/yashwanth15-15/Employee-Attrition-XGBoost.git
 cd Employee-Attrition-XGBoost
-```
 
-### 2. Create a Virtual Environment
-```bash
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-```
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
-### 3. Install Dependencies
-```bash
+# Install requirements
 pip install -r requirements.txt
+
+# Start FastAPI (Terminal 1)
+uvicorn api.main:app --reload
+
+# Start Streamlit (Terminal 2)
+streamlit run App/app.py
 ```
 
----
+## API Endpoints
+- **Authentication**: `/api/v1/auth/login`, `/api/v1/auth/me`
+- **Health**: `/api/v1/health`
+- **Prediction**: `/api/v1/predict`
+- **Simulation**: `/api/v1/simulate`
+- **Analytics**: `/api/v1/analytics/summary`
+- **Reports**: `/api/v1/reports/pdf`
 
-## 🏃‍♂️ Running the Project
+## Screenshots Section
+*(Placeholders for future screenshots)*
+- Login Page
+- Dashboard
+- Prediction
+- SHAP
+- Analytics
+- Executive Dashboard
 
-The platform requires both the backend (FastAPI) and the frontend (Streamlit) to be running simultaneously.
+## Future Enhancements
+- AI HR Copilot
+- Email Notifications
+- Password Recovery
+- Multi-user Management
+- LLM-powered Insights
+- Cloud Deployment
 
-### Start the Backend (Terminal 1)
-```bash
-uvicorn api.main:app --reload --port 8000
-```
+## License
+MIT License
 
-### Start the Frontend (Terminal 2)
-```bash
-streamlit run app/app.py
-```
-*The application will be accessible at `http://localhost:8501`*
-
----
-
-## 🐳 Docker Deployment
-
-To run the entire stack effortlessly using Docker:
-
-```bash
-# Build the Docker image
-docker build -t attrition-platform .
-
-# Run the container (Maps Streamlit to 8501 and FastAPI to 8000)
-docker run -p 8501:8501 -p 8000:8000 attrition-platform
-```
-
----
-
-## 📸 Screenshots
-
-| Prediction Dashboard | SHAP Explainability |
-| :---: | :---: |
-| ![Prediction Dashboard](screenshots/app/dashboard.png) | ![SHAP Analysis](screenshots/app/shap.png) |
-| **Executive Overview** | **Batch Processing** |
-| ![Executive Dashboard](screenshots/app/executive_dashboard.png) | ![Batch Prediction](screenshots/app/batch_prediction.png) |
-
----
-
-## 💼 Business Impact
-
-By deploying this platform, HR Departments can:
-- **Reduce Turnover Costs**: Identifying high-risk employees early allows for preventative retention measures, saving the standard 1.5x - 2x salary replacement cost per employee.
-- **Data-Driven Interventions**: SHAP explanations remove the guesswork. If "Work Life Balance" is the primary driver of risk, HR can offer flexible hours rather than an unnecessary salary hike.
-- **Strategic Workforce Planning**: Executive and department-level analytics allow leadership to identify systemic toxic environments or management issues before mass exoduses occur.
-
----
-
-## 🔮 Future Improvements
-
-- **Integration with HRIS Systems**: Direct API connections to Workday, BambooHR, or SAP SuccessFactors for automated daily data syncing.
-- **Time-Series Forecasting**: Predicting *when* an employee is likely to leave (e.g., within 3 months vs. 12 months).
-- **Automated Retraining Pipeline**: Implementing Airflow or Prefect to automatically retrain the XGBoost model as new quarterly HR data flows into the system.
-
----
-
-## 👨‍💻 Author
-
-**Bankapalli Yashwanth**
-
-🎓 B.Tech Computer Science & Engineering (AI/ML Enthusiast)
-
-📧 Email: bankapalliyashwanth03@gmail.com
-
-💼 LinkedIn:
-https://www.linkedin.com/in/yashwanth-bankapalli-475838263
-
-🐙 GitHub:
-https://github.com/yashwanth15-15
-
-### Connect With Me
-
-[![GitHub](https://img.shields.io/badge/GitHub-yashwanth15--15-181717?style=for-the-badge&logo=github)](https://github.com/yashwanth15-15)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Bankapalli%20Yashwanth-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/yashwanth-bankapalli-475838263)
-[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=for-the-badge&logo=gmail)](mailto:bankapalliyashwanth03@gmail.com)
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
+## Author
+Bankapalli Yashwanth

@@ -4,7 +4,7 @@ import streamlit as st
 from fastapi import status
 
 BACKEND_URL = os.getenv(
-    "BACKEND_URL", "https://employee-attrition-xgboost.onrender.com"
+    "BACKEND_URL", "http://127.0.0.1:8000"
 )
 
 

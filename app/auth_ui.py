@@ -51,6 +51,20 @@ def render_login_page():
                 else:
                     st.warning("Please enter both username and password.")
 
+        with st.expander("Forgot Password?"):
+            st.info("""
+For this local HR Analytics platform, password self-reset is not available.
+
+Please contact the System Administrator to reset your password.
+
+**Default Local Administrator:**
+Username: admin
+
+If this is a fresh local installation, refer to the project README or the database initialization script for the default credentials.
+
+Future versions will support secure email-based password recovery.
+            """)
+
 def logout():
     st.session_state.pop("access_token", None)
     st.session_state.pop("username", None)

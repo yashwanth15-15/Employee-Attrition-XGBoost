@@ -34,22 +34,22 @@ role = st.session_state.get("role", "Viewer")
 home_page = st.Page(lambda: _render_home(), title="Home Dashboard", icon="🏠", default=True)
 
 analytics_pages = [
-    st.Page("pages/1_Dataset_Overview.py", title="Dataset Overview", icon="📊"),
-    st.Page("pages/2_EDA.py", title="Exploratory Data Analysis", icon="📈"),
-    st.Page("pages/3_Model_Performance.py", title="Model Performance", icon="🤖"),
-    st.Page("pages/5_Feature_Importance.py", title="Feature Importance", icon="🔑"),
-    st.Page("pages/7_HR_Insights.py", title="HR Insights", icon="💡"),
-    st.Page("pages/8_SHAP_Explainability.py", title="SHAP Explainability", icon="🧠"),
-    st.Page("pages/9_Prediction_History.py", title="Prediction History", icon="🕒"),
-    st.Page("pages/10_Executive_Dashboard.py", title="Executive Dashboard", icon="🏢"),
-    st.Page("pages/11_Department_Analytics.py", title="Department Analytics", icon="🏢"),
-    st.Page("pages/12_Employee_Comparison.py", title="Employee Comparison", icon="👥"),
-    st.Page("pages/13_Retention_Cost_Workforce_Planning.py", title="Workforce Planning", icon="💰"),
+    st.Page("views/1_Dataset_Overview.py", title="Dataset Overview", icon="📊"),
+    st.Page("views/2_EDA.py", title="Exploratory Data Analysis", icon="📈"),
+    st.Page("views/3_Model_Performance.py", title="Model Performance", icon="🤖"),
+    st.Page("views/5_Feature_Importance.py", title="Feature Importance", icon="🔑"),
+    st.Page("views/7_HR_Insights.py", title="HR Insights", icon="💡"),
+    st.Page("views/8_SHAP_Explainability.py", title="SHAP Explainability", icon="🧠"),
+    st.Page("views/9_Prediction_History.py", title="Prediction History", icon="🕒"),
+    st.Page("views/10_Executive_Dashboard.py", title="Executive Dashboard", icon="🏢"),
+    st.Page("views/11_Department_Analytics.py", title="Department Analytics", icon="🏢"),
+    st.Page("views/12_Employee_Comparison.py", title="Employee Comparison", icon="👥"),
+    st.Page("views/13_Retention_Cost_Workforce_Planning.py", title="Workforce Planning", icon="💰"),
 ]
 
 prediction_pages = [
-    st.Page("pages/4_Prediction.py", title="Single Prediction", icon="👤"),
-    st.Page("pages/6_Batch_Prediction.py", title="Batch Prediction", icon="📂"),
+    st.Page("views/4_Prediction.py", title="Single Prediction", icon="👤"),
+    st.Page("views/6_Batch_Prediction.py", title="Batch Prediction", icon="📂"),
 ]
 
 # Build navigation map based on role
@@ -59,10 +59,9 @@ if role in ["Admin", "HR_Manager"]:
     nav_dict["Predictions & Simulations"] = prediction_pages
 
 pg = st.navigation(nav_dict)
-pg.run()
 
 def _render_home():
-        acc, f1 = get_model_metrics()
+    acc, f1 = get_model_metrics()
     
     # Try to display logo if available
     if os.path.exists("assets/logo.png"):
@@ -119,13 +118,24 @@ def _render_home():
                 "• Docker Ready"
             )
         with col2:
+            try:
+                from database import engine
+                db_name = engine.name.capitalize()
+                if db_name == "Sqlite":
+                    db_name = "SQLite"
+                elif db_name == "Postgresql":
+                    db_name = "PostgreSQL"
+                db_text = f"SQLAlchemy ORM ({db_name})"
+            except Exception:
+                db_text = "SQLAlchemy ORM (SQLite / PostgreSQL)"
+
             st.markdown("### Technology Stack")
             st.markdown(
                 "**Frontend:** Streamlit\n\n"
                 "**Backend:** FastAPI\n\n"
                 "**Machine Learning:** XGBoost\n\n"
                 "**Explainable AI:** SHAP\n\n"
-                "**Database:** SQLite\n\n"
+                f"**Database:** {db_text}\n\n"
                 "**Visualization:** Plotly\n\n"
                 "**Deployment:** Docker, Render\n\n"
                 "**Language:** Python"
@@ -139,9 +149,11 @@ def _render_home():
             "User <br>↓<br>"
             "Streamlit Dashboard <br>↓<br>"
             "FastAPI REST API <br>↓<br>"
+            "JWT Authentication + RBAC <br>↓<br>"
+            "SQLAlchemy ORM <br>↓<br>"
+            "SQLite (Local) / PostgreSQL (Production) <br>↓<br>"
             "XGBoost Prediction Engine <br>↓<br>"
-            "SHAP Explanation Engine <br>↓<br>"
-            "SQLite Database"
+            "SHAP Explainability"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -165,7 +177,7 @@ def _render_home():
             st.metric("Number of Features", "34")
             st.metric("Prediction Accuracy", f"{acc*100:.2f}%")
             st.metric("ML Algorithm", "XGBoost")
-            st.metric("REST Endpoints", "5+")
+            st.metric("REST Endpoints", "7")
             st.metric("Dashboard Pages", "13")
             st.metric("Model Explainability", "SHAP")
     
@@ -173,9 +185,11 @@ def _render_home():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: grey; font-size: 0.9em;'>"
-        "<b>Version:</b> 1.0.0 | <b>Model:</b> XGBoost Classifier<br>"
+        "<b>Version:</b> 2.0.0 | <b>Model:</b> XGBoost Classifier<br>"
         "Built with Streamlit + FastAPI | Developer: B. Yashwanth"
         "</div>",
         unsafe_allow_html=True,
     )
     logger.info("Main dashboard rendered successfully.")
+
+pg.run()

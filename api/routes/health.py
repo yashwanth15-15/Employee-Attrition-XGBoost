@@ -39,10 +39,13 @@ async def health_check() -> HealthResponse:
         # Check database
         db_connected = False
         try:
-            db_service.get_all_predictions()
+            from sqlalchemy import text
+            from api.database.session import engine
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
             db_connected = True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Database connection check failed: {e}")
 
         logger.info("Successfully processed /health")
         return HealthResponse(

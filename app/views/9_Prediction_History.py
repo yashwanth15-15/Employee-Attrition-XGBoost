@@ -103,20 +103,21 @@ st.subheader("Delete Predictions")
 selected_ids = st.multiselect(
     "Select rows to delete (by ID)", options=df["id"].tolist()
 )
+# Delete Selected
+confirm_delete = st.checkbox("Confirm deletion of selected rows")
 if st.button("Delete Selected"):
-    if selected_ids:
-        confirm = st.checkbox("Confirm deletion of selected rows")
-        if confirm:
-            delete_predictions(selected_ids)
-            st.success(f"Deleted {len(selected_ids)} records.")
-            st.rerun()
-        else:
-            st.warning("Please confirm deletion.")
-    else:
+    if selected_ids and confirm_delete:
+        delete_predictions(selected_ids)
+        st.success(f"Deleted {len(selected_ids)} records.")
+        st.rerun()
+    elif not selected_ids:
         st.info("No rows selected.")
+    else:
+        st.warning("Please confirm deletion.")
 
+# Delete All
+confirm_all = st.checkbox("Confirm delete ALL predictions")
 if st.button("Delete All Predictions"):
-    confirm_all = st.checkbox("Confirm delete ALL predictions")
     if confirm_all:
         delete_all_predictions()
         st.success("All predictions deleted.")

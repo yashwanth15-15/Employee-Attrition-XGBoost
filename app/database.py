@@ -70,12 +70,14 @@ def delete_predictions(ids: list):
     """Delete predictions by a list of ids."""
     if not ids:
         return
-    with engine.begin() as conn:
-        conn.execute(text("DELETE FROM predictions WHERE id IN :ids"), {"ids": tuple(ids)})
+    with SessionLocal() as db:
+        db.query(PredictionHistory).filter(PredictionHistory.id.in_(ids)).delete(synchronize_session=False)
+        db.commit()
 
 def delete_all_predictions():
-    with engine.begin() as conn:
-        conn.execute(text("DELETE FROM predictions"))
+    with SessionLocal() as db:
+        db.query(PredictionHistory).delete(synchronize_session=False)
+        db.commit()
 
 def get_user_by_username(username: str):
     from api.database.crud import get_user_by_username as crud_get_user
